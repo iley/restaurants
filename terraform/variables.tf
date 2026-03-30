@@ -13,6 +13,7 @@ variable "instance_type" {
 variable "key_name" {
   description = "Name of the SSH key pair (must already exist in AWS)"
   type        = string
+  default     = "default"
 }
 
 variable "data_volume_size" {

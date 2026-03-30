@@ -23,7 +23,7 @@ Data (SQLite DB, media, static files) lives on a separate EBS volume at `/opt/re
 ### Prerequisites
 
 - Terraform >= 1.0
-- Ansible
+- uv (for running Ansible)
 - AWS CLI configured with credentials
 - An SSH key pair in AWS
 
@@ -42,21 +42,20 @@ Point your domain's A record to the elastic IP in Cloudflare (proxied). Flexible
 ### Deploy the application
 
 ```bash
-cd ansible
-cp inventory.ini.example inventory.ini
-# Edit inventory.ini with the correct host and SSH key path
+cp ansible/inventory.ini.example ansible/inventory.ini
+# Edit ansible/inventory.ini with the correct host and SSH key path
 
-ansible-playbook -i inventory.ini playbook.yml \
-  --extra-vars "django_secret_key=YOUR_SECRET_KEY"
+./deploy.sh
 ```
+
+The script generates a Django secret key on first run (stored in `ansible/secret_key`, gitignored) and invokes Ansible via `uvx`.
 
 ### Routine deploys
 
-Push to `main` -- GitHub Actions builds and pushes the Docker image to GHCR. Then re-run the Ansible playbook to pull and restart:
+Push to `main` -- GitHub Actions builds and pushes the Docker image to GHCR. Then re-run:
 
 ```bash
-ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
-  --extra-vars "django_secret_key=YOUR_SECRET_KEY"
+./deploy.sh
 ```
 
 ### First-time setup on the server

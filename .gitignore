@@ -11,3 +11,4 @@ terraform/.terraform/
 *.tfstate.*
 terraform/terraform.tfvars
 ansible/inventory.ini
+ansible/secret_key
