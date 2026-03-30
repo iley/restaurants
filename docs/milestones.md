@@ -36,6 +36,7 @@
 
 - Auto-fill address, website, and Google Maps link when adding a restaurant in the admin
 - **Validate:** add a new restaurant, confirm Places data populates correctly
+- Add a way to re-populate data for existing entries (in admin if easy to do so, otherwise in CLI)
 
 ## M7: Deployment
 
