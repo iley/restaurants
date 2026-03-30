@@ -5,3 +5,9 @@ __pycache__/
 media/
 .venv/
 *.egg-info/
+staticfiles/
+terraform/.terraform/
+*.tfstate
+*.tfstate.*
+terraform/terraform.tfvars
+ansible/inventory.ini

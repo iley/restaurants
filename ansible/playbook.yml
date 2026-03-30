@@ -1,0 +1,116 @@
+---
+- name: Deploy restaurants app
+  hosts: restaurants
+  become: true
+
+  tasks:
+    # --- EBS Volume ---
+    - name: Create filesystem on data volume (only if unformatted)
+      filesystem:
+        fstype: ext4
+        dev: /dev/xvdf
+
+    - name: Mount data volume
+      mount:
+        path: "{{ data_dir }}"
+        src: /dev/xvdf
+        fstype: ext4
+        state: mounted
+
+    - name: Create data subdirectories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ media_dir }}"
+        - "{{ static_dir }}"
+
+    # --- Docker ---
+    - name: Install Docker
+      dnf:
+        name: docker
+        state: present
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    # --- nginx ---
+    - name: Install nginx
+      dnf:
+        name: nginx
+        state: present
+
+    - name: Deploy nginx configuration
+      template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/conf.d/restaurants.conf
+        mode: "0644"
+      notify: Reload nginx
+
+    - name: Remove default nginx config
+      file:
+        path: /etc/nginx/conf.d/default.conf
+        state: absent
+      notify: Reload nginx
+
+    - name: Start and enable nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: true
+
+    # --- Application container ---
+    - name: Pull latest application image
+      command: docker pull {{ app_image }}
+      changed_when: true
+
+    - name: Stop existing container
+      command: docker stop {{ app_container_name }}
+      ignore_errors: true
+      changed_when: true
+
+    - name: Remove existing container
+      command: docker rm {{ app_container_name }}
+      ignore_errors: true
+      changed_when: true
+
+    - name: Run application container
+      command: >
+        docker run -d
+        --name {{ app_container_name }}
+        --restart unless-stopped
+        -p 127.0.0.1:{{ app_port }}:8000
+        -v {{ db_path }}:/app/data/db.sqlite3
+        -v {{ media_dir }}:/app/data/media
+        -v {{ static_dir }}:/app/data/static
+        -e DJANGO_SECRET_KEY={{ django_secret_key }}
+        -e DJANGO_DEBUG={{ django_debug }}
+        -e DJANGO_ALLOWED_HOSTS={{ django_allowed_hosts }}
+        -e CSRF_TRUSTED_ORIGINS={{ csrf_trusted_origins }}
+        -e DATABASE_PATH=/app/data/db.sqlite3
+        -e MEDIA_ROOT=/app/data/media
+        -e STATIC_ROOT=/app/data/static
+        {{ app_image }}
+      changed_when: true
+
+    - name: Wait for container to start
+      command: docker ps --filter name={{ app_container_name }} --filter status=running -q
+      register: container_check
+      retries: 5
+      delay: 3
+      until: container_check.stdout != ""
+
+    # --- Cleanup ---
+    - name: Prune old Docker images
+      command: docker image prune -af --filter "until=168h"
+      changed_when: false
+
+  handlers:
+    - name: Reload nginx
+      systemd:
+        name: nginx
+        state: reloaded

@@ -1,0 +1,17 @@
+app_image: ghcr.io/iley/restaurants:latest
+app_container_name: restaurants
+app_port: 8000
+
+# Paths on the host (EBS volume mounted here)
+data_dir: /opt/restaurants
+db_path: /opt/restaurants/db.sqlite3
+media_dir: /opt/restaurants/media
+static_dir: /opt/restaurants/static
+
+domain: restaurants.istrukov.com
+
+# Django settings
+django_debug: "False"
+django_allowed_hosts: "restaurants.istrukov.com"
+csrf_trusted_origins: "https://restaurants.istrukov.com"
+# django_secret_key: set via --extra-vars or ansible-vault

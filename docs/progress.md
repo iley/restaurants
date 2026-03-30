@@ -1,6 +1,6 @@
 # Progress
 
-## Current milestone: M5 — Sorting
+## Current milestone: M6 — Deployment
 
 ## Completed
 
@@ -44,9 +44,13 @@
 
 ### M6: Deployment
 
-- [ ] Dockerfile + docker-compose
-- [ ] Deploy to VPS, SQLite on mounted volume
-- [ ] Validate: app running on a real URL
+- [x] Django settings made production-ready (env vars, STATIC_ROOT, proxy headers)
+- [x] Dockerfile (multi-stage build with uv + gunicorn)
+- [x] GitHub Actions workflow (build arm64 image, push to GHCR)
+- [x] Terraform config (EC2, security group, EIP, EBS volume)
+- [x] Ansible playbook (Docker, nginx, container deployment)
+- [ ] Provision infrastructure and deploy
+- [ ] Validate: app running on restaurants.istrukov.com
 
 ### M7: Detail view + photos
 
