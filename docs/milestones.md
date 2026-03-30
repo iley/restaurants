@@ -10,7 +10,7 @@
 ## M2: Public list view
 
 - Restaurant list page for the selected city
-- Table/list layout showing name, cuisine, venue category, rating tier, Michelin status
+- Table/list layout showing name, cuisine, venue category, rating, Michelin status
 - City selector as top-level partition
 - Style with Bulma (no build step)
 - **Validate:** browse restaurants in a browser, check it looks decent on mobile
@@ -26,19 +26,27 @@
 - Load pre-existing data from the CSV file into the database
 - Perhaps use Django fixtures (evaluate alternative options)
 
-## M5: Detail view + photos
+## M5: Sorting
+
+- Clickable table headers to sort by any column (ascending/descending toggle)
+- Stable sorting: secondary sort preserved from previous column click
+- Default sort: by rating (highest first)
+- Sort state preserved in URL and across filter changes
+- **Validate:** sort by rating, then by name within same rating group; URL is shareable
+
+## M6: Detail view + photos
 
 - Restaurant detail page: all fields, visit history, photos
 - Photo upload through Django admin, display on detail page
 - **Validate:** click through from list to detail, see photos, check it reads well
 
-## M6: Google Places integration
+## M7: Google Places integration
 
 - Auto-fill address, website, and Google Maps link when adding a restaurant in the admin
 - **Validate:** add a new restaurant, confirm Places data populates correctly
 - Add a way to re-populate data for existing entries (in admin if easy to do so, otherwise in CLI)
 
-## M7: Deployment
+## M8: Deployment
 
 - Dockerfile + docker-compose (app + static/media file serving)
 - Deploy to a single VPS, SQLite on a mounted volume

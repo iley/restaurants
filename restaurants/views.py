@@ -1,8 +1,36 @@
+from urllib.parse import urlencode
+
+from django.db import models
+from django.db.models import Case, IntegerField, Value, When
+from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from .models import City, Restaurant
 
 DEFAULT_CITY_SLUG = "dublin"
+DEFAULT_SORT = "-rating,name"
+
+# Single source of truth for sortable columns: order, labels, default direction.
+SORT_COLUMNS = [
+    {"field": "name", "label": "Name", "default_dir": "asc"},
+    {"field": "cuisine", "label": "Cuisine", "default_dir": "asc"},
+    {"field": "venue_category", "label": "Type", "default_dir": "asc"},
+    {"field": "rating", "label": "My Rating", "default_dir": "desc"},
+    {"field": "michelin_status", "label": "Michelin", "default_dir": "desc"},
+]
+_SORTABLE_FIELDS = {col["field"] for col in SORT_COLUMNS}
+
+# Michelin status has no natural DB ordering — map to numeric rank.
+_MICHELIN_RANK = Case(
+    *(
+        When(michelin_status=choice.value, then=Value(i))
+        for i, choice in enumerate(Restaurant.MichelinStatus)
+    ),
+    output_field=IntegerField(),
+)
+
+_TEXT_FIELDS = {"name", "cuisine", "venue_category"}
 
 
 def index(request):
@@ -30,6 +58,21 @@ def restaurant_list(request, city_slug):
         lo, hi = Restaurant.RATING_TIERS[rating_tier]["range"]
         restaurants = restaurants.filter(rating__gte=lo, rating__lte=hi)
 
+    # Sorting
+    sort_param = request.GET.get("sort", DEFAULT_SORT)
+    current_sort = _parse_sort(sort_param) or _parse_sort(DEFAULT_SORT)
+
+    order_by_args = []
+    for f, d in current_sort:
+        if f == "michelin_status":
+            expr = _MICHELIN_RANK
+        elif f in _TEXT_FIELDS:
+            expr = Lower(f)
+        else:
+            expr = models.F(f)
+        order_by_args.append(expr.desc() if d == "desc" else expr.asc())
+    restaurants = restaurants.order_by(*order_by_args)
+
     cuisines = base_qs.values_list("cuisine", flat=True).distinct().order_by("cuisine")
 
     rating_tier_choices = {
@@ -42,6 +85,13 @@ def restaurant_list(request, city_slug):
         "michelin_status": michelin_status,
         "rating_tier": rating_tier,
     }
+
+    # Build sort header links (preserve current filters in each link)
+    filter_params = {k: v for k, v in filters.items() if v}
+    base_url = reverse("restaurant_list", kwargs={"city_slug": city.slug})
+    sort_headers = _build_sort_headers(current_sort, filter_params, base_url)
+
+    is_htmx = request.headers.get("HX-Request") == "true"
 
     context = {
         "city": city,
@@ -56,8 +106,63 @@ def restaurant_list(request, city_slug):
         ],
         "rating_tiers": rating_tier_choices,
         "filters": filters,
+        "sort_headers": sort_headers,
+        "current_sort_param": _sort_to_param(current_sort),
+        "is_htmx": is_htmx,
     }
 
-    if request.headers.get("HX-Request"):
+    if is_htmx:
         return render(request, "restaurants/_restaurant_table.html", context)
     return render(request, "restaurants/restaurant_list.html", context)
+
+
+# -- sorting helpers --
+
+
+def _parse_sort(sort_param):
+    """Parse a comma-separated sort string into [(field, 'asc'|'desc'), ...]."""
+    result = []
+    seen = set()
+    for part in sort_param.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if part.startswith("-"):
+            field, direction = part[1:], "desc"
+        else:
+            field, direction = part, "asc"
+        if field in _SORTABLE_FIELDS and field not in seen:
+            result.append((field, direction))
+            seen.add(field)
+    return result
+
+
+def _sort_to_param(sort_list):
+    """Convert [(field, direction), ...] back to a comma-separated string."""
+    return ",".join(f"-{f}" if d == "desc" else f for f, d in sort_list)
+
+
+def _build_sort_headers(current_sort, filter_params, base_url):
+    """For each sortable column, compute the URL and indicator state."""
+    headers = []
+    for col in SORT_COLUMNS:
+        field = col["field"]
+        is_primary = bool(current_sort) and current_sort[0][0] == field
+        if is_primary:
+            new_dir = "asc" if current_sort[0][1] == "desc" else "desc"
+            new_sort = [(field, new_dir)] + [
+                (f, d) for f, d in current_sort[1:] if f != field
+            ]
+        else:
+            new_sort = [(field, col["default_dir"])] + [
+                (f, d) for f, d in current_sort if f != field
+            ]
+
+        params = {**filter_params, "sort": _sort_to_param(new_sort)}
+        headers.append({
+            "label": col["label"],
+            "url": f"{base_url}?{urlencode(params)}",
+            "is_primary": is_primary,
+            "direction": current_sort[0][1] if is_primary else None,
+        })
+    return headers

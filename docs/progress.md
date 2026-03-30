@@ -1,6 +1,6 @@
 # Progress
 
-## Current milestone: M5 — Detail view + photos
+## Current milestone: M5 — Sorting
 
 ## Completed
 
@@ -15,7 +15,7 @@
 ### M2: Public list view
 
 - [x] Restaurant list page for the selected city
-- [x] Table/list layout showing name, cuisine, venue category, rating tier, Michelin status
+- [x] Table/list layout showing name, cuisine, venue category, rating, Michelin status
 - [x] City selector as dropdown in navbar
 - [x] Style with Bulma (vendored, no CDN or build step)
 - [x] Validate: browse restaurants in a browser, check mobile
@@ -32,20 +32,28 @@
 - [x] Django management command (`import_csv`) to load CSV into the database
 - [x] Validate: 131 restaurants loaded, idempotent on re-run
 
+### M5: Sorting
+
+- [x] Clickable table headers with ascending/descending toggle
+- [x] Stable sorting: previous sort columns kept as tiebreakers
+- [x] Default sort: rating descending, then name ascending
+- [x] Sort state preserved in URL (shareable) and across filter changes (via OOB swap)
+- [ ] Validate: sort interactions work correctly, URL is shareable
+
 ## To do
 
-### M5: Detail view + photos
+### M6: Detail view + photos
 
 - [ ] Restaurant detail page: all fields, visit history, photos
 - [ ] Photo upload through Django admin, display on detail page
 - [ ] Validate: click through from list to detail, photos display well
 
-### M6: Google Places integration
+### M7: Google Places integration
 
 - [ ] Auto-fill address, website, and Google Maps link in admin
 - [ ] Validate: add a new restaurant, confirm Places data populates
 
-### M7: Deployment
+### M8: Deployment
 
 - [ ] Dockerfile + docker-compose
 - [ ] Deploy to VPS, SQLite on mounted volume

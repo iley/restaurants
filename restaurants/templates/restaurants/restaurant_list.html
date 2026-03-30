@@ -10,6 +10,7 @@
       hx-target="#restaurant-table"
       hx-push-url="true"
       class="mb-5">
+  <input type="hidden" name="sort" id="sort-input" value="{{ current_sort_param }}">
   <div class="columns is-multiline is-mobile">
     <div class="column is-half-mobile is-one-quarter-tablet">
       <div class="field">
@@ -28,7 +29,7 @@
     </div>
     <div class="column is-half-mobile is-one-quarter-tablet">
       <div class="field">
-        <label class="label is-small">Venue kind</label>
+        <label class="label is-small">Type</label>
         <div class="control">
           <div class="select is-fullwidth">
             <select name="venue_category">
