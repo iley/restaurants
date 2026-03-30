@@ -1,6 +1,6 @@
 # Progress
 
-## Current milestone: M4 — Load existing data
+## Current milestone: M5 — Detail view + photos
 
 ## Completed
 
@@ -26,12 +26,13 @@
 - [x] HTMX partial updates (no full page reloads)
 - [x] Validate: filter combinations work, URL is shareable/bookmarkable
 
-## To do
-
 ### M4: Load existing data
 
-- [ ] Load pre-existing data from CSV into the database
-- [ ] Evaluate approach (Django fixtures vs alternatives)
+- [x] Cleaned CSV: fixed headers, split Category into Venue category + Cuisine, normalized Michelin status values, merged "been more than once" into comments
+- [x] Django management command (`import_csv`) to load CSV into the database
+- [x] Validate: 131 restaurants loaded, idempotent on re-run
+
+## To do
 
 ### M5: Detail view + photos
 
