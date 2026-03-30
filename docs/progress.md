@@ -42,19 +42,19 @@
 
 ## To do
 
-### M6: Detail view + photos
+### M6: Deployment
+
+- [ ] Dockerfile + docker-compose
+- [ ] Deploy to VPS, SQLite on mounted volume
+- [ ] Validate: app running on a real URL
+
+### M7: Detail view + photos
 
 - [ ] Restaurant detail page: all fields, visit history, photos
 - [ ] Photo upload through Django admin, display on detail page
 - [ ] Validate: click through from list to detail, photos display well
 
-### M7: Google Places integration
+### M8: Google Places integration
 
 - [ ] Auto-fill address, website, and Google Maps link in admin
 - [ ] Validate: add a new restaurant, confirm Places data populates
-
-### M8: Deployment
-
-- [ ] Dockerfile + docker-compose
-- [ ] Deploy to VPS, SQLite on mounted volume
-- [ ] Validate: app running on a real URL

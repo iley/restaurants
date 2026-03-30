@@ -34,20 +34,20 @@
 - Sort state preserved in URL and across filter changes
 - **Validate:** sort by rating, then by name within same rating group; URL is shareable
 
-## M6: Detail view + photos
+## M6: Deployment
+
+- Dockerfile + docker-compose (app + static/media file serving)
+- Deploy to a single VPS, SQLite on a mounted volume
+- **Validate:** app running on a real URL
+
+## M7: Detail view + photos
 
 - Restaurant detail page: all fields, visit history, photos
 - Photo upload through Django admin, display on detail page
 - **Validate:** click through from list to detail, see photos, check it reads well
 
-## M7: Google Places integration
+## M8: Google Places integration
 
 - Auto-fill address, website, and Google Maps link when adding a restaurant in the admin
 - **Validate:** add a new restaurant, confirm Places data populates correctly
 - Add a way to re-populate data for existing entries (in admin if easy to do so, otherwise in CLI)
-
-## M8: Deployment
-
-- Dockerfile + docker-compose (app + static/media file serving)
-- Deploy to a single VPS, SQLite on a mounted volume
-- **Validate:** app running on a real URL
