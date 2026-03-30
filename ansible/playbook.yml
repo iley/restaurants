@@ -5,15 +5,32 @@
 
   tasks:
     # --- EBS Volume ---
-    - name: Create filesystem on data volume (only if unformatted)
+    # Nitro-based instances (t4g) expose EBS volumes as /dev/nvme*n1, not
+    # the /dev/xvdf name requested in Terraform. We find the actual device,
+    # label the filesystem, and mount by label so it survives device reordering.
+    - name: Find data volume device
+      shell: |
+        for dev in /dev/xvdf /dev/nvme1n1; do
+          if [ -b "$dev" ]; then
+            echo "$dev"
+            exit 0
+          fi
+        done
+        echo "No data volume device found" >&2
+        exit 1
+      register: data_device
+      changed_when: false
+
+    - name: Create filesystem on data volume
       filesystem:
         fstype: ext4
-        dev: /dev/xvdf
+        dev: "{{ data_device.stdout }}"
+        opts: "-L restaurants-data"
 
-    - name: Mount data volume
+    - name: Mount data volume by label
       mount:
         path: "{{ data_dir }}"
-        src: /dev/xvdf
+        src: "LABEL=restaurants-data"
         fstype: ext4
         state: mounted
 
@@ -21,12 +38,14 @@
       file:
         path: "{{ item }}"
         state: directory
+        owner: ec2-user
+        group: ec2-user
         mode: "0755"
       loop:
+        - "{{ data_dir }}"
         - "{{ media_dir }}"
         - "{{ static_dir }}"
 
-    # --- Docker ---
     - name: Install Docker
       dnf:
         name: docker
@@ -38,7 +57,6 @@
         state: started
         enabled: true
 
-    # --- nginx ---
     - name: Install nginx
       dnf:
         name: nginx
@@ -63,48 +81,20 @@
         state: started
         enabled: true
 
-    # --- Application container ---
-    - name: Pull latest application image
-      command: docker pull {{ app_image }}
-      changed_when: true
+    - name: Deploy container service unit
+      template:
+        src: templates/restaurants.service.j2
+        dest: /etc/systemd/system/restaurants.service
+        mode: "0644"
+      notify: Restart restaurants
 
-    - name: Stop existing container
-      command: docker stop {{ app_container_name }}
-      ignore_errors: true
-      changed_when: true
+    - name: Enable and start restaurants service
+      systemd:
+        name: restaurants
+        daemon_reload: true
+        enabled: true
+        state: started
 
-    - name: Remove existing container
-      command: docker rm {{ app_container_name }}
-      ignore_errors: true
-      changed_when: true
-
-    - name: Run application container
-      command: >
-        docker run -d
-        --name {{ app_container_name }}
-        --restart unless-stopped
-        -p 127.0.0.1:{{ app_port }}:8000
-        -v {{ db_path }}:/app/data/db.sqlite3
-        -v {{ media_dir }}:/app/data/media
-        -v {{ static_dir }}:/app/data/static
-        -e DJANGO_SECRET_KEY={{ django_secret_key }}
-        -e DJANGO_DEBUG={{ django_debug }}
-        -e DJANGO_ALLOWED_HOSTS={{ django_allowed_hosts }}
-        -e CSRF_TRUSTED_ORIGINS={{ csrf_trusted_origins }}
-        -e DATABASE_PATH=/app/data/db.sqlite3
-        -e MEDIA_ROOT=/app/data/media
-        -e STATIC_ROOT=/app/data/static
-        {{ app_image }}
-      changed_when: true
-
-    - name: Wait for container to start
-      command: docker ps --filter name={{ app_container_name }} --filter status=running -q
-      register: container_check
-      retries: 5
-      delay: 3
-      until: container_check.stdout != ""
-
-    # --- Cleanup ---
     - name: Prune old Docker images
       command: docker image prune -af --filter "until=168h"
       changed_when: false
@@ -114,3 +104,9 @@
       systemd:
         name: nginx
         state: reloaded
+
+    - name: Restart restaurants
+      systemd:
+        name: restaurants
+        daemon_reload: true
+        state: restarted

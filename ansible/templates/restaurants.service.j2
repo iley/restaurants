@@ -1,0 +1,29 @@
+[Unit]
+Description=Restaurants app
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/docker rm -f {{ app_container_name }}
+ExecStartPre=/usr/bin/docker pull {{ app_image }}
+ExecStart=/usr/bin/docker run --rm \
+    --name {{ app_container_name }} \
+    -p 127.0.0.1:{{ app_port }}:8000 \
+    -v {{ db_path }}:/app/data/db.sqlite3 \
+    -v {{ media_dir }}:/app/data/media \
+    -v {{ static_dir }}:/app/data/static \
+    -e DJANGO_SECRET_KEY={{ django_secret_key }} \
+    -e DJANGO_DEBUG={{ django_debug }} \
+    -e DJANGO_ALLOWED_HOSTS={{ django_allowed_hosts }} \
+    -e CSRF_TRUSTED_ORIGINS={{ csrf_trusted_origins }} \
+    -e DATABASE_PATH=/app/data/db.sqlite3 \
+    -e MEDIA_ROOT=/app/data/media \
+    -e STATIC_ROOT=/app/data/static \
+    {{ app_image }}
+ExecStop=/usr/bin/docker stop {{ app_container_name }}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

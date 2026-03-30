@@ -37,7 +37,7 @@ terraform init
 terraform apply
 ```
 
-Point your domain's A record to the elastic IP in Cloudflare (proxied, Flexible SSL).
+Point your domain's A record to the elastic IP in Cloudflare (proxied). Flexible SSL mode works because nginx hardcodes `X-Forwarded-Proto: https` so Django sees the correct scheme regardless of the origin-side connection.
 
 ### Deploy the application
 
@@ -63,7 +63,8 @@ ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
 
 ```bash
 # Copy your local database to the server
-scp db.sqlite3 ec2-user@<elastic-ip>:/opt/restaurants/db.sqlite3
+scp db.sqlite3 ec2-user@<elastic-ip>:~/db.sqlite3
+ssh ec2-user@<elastic-ip> "sudo mv ~/db.sqlite3 /opt/restaurants/db.sqlite3 && sudo systemctl restart restaurants"
 
 # Create a superuser
 ssh ec2-user@<elastic-ip>
