@@ -1,6 +1,6 @@
 # Progress
 
-## Current milestone: M2 — Public list view
+## Current milestone: M3 — Filtering with HTMX
 
 ## Completed
 
@@ -10,17 +10,17 @@
 - [x] Models: City, Restaurant, Visit, Photo
 - [x] Django admin with filters, search, and inline Visit/Photo editing
 - [x] Settings configured (SQLite, media files for photo uploads)
-- [ ] Validate: add real restaurants through the admin, verify data model feels right
-
-## To do
+- [x] Validate: add real restaurants through the admin, verify data model feels right
 
 ### M2: Public list view
 
-- [ ] Restaurant list page for the selected city
-- [ ] Table/list layout showing name, cuisine, venue category, rating tier, Michelin status
-- [ ] City selector as top-level partition
-- [ ] Style with Bulma (no build step)
-- [ ] Validate: browse restaurants in a browser, check mobile
+- [x] Restaurant list page for the selected city
+- [x] Table/list layout showing name, cuisine, venue category, rating tier, Michelin status
+- [x] City selector as dropdown in navbar
+- [x] Style with Bulma (vendored, no CDN or build step)
+- [x] Validate: browse restaurants in a browser, check mobile
+
+## To do
 
 ### M3: Filtering with HTMX
 
