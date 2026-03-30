@@ -1,6 +1,6 @@
 # Progress
 
-## Current milestone: M3 — Filtering with HTMX
+## Current milestone: M4 — Detail view + photos
 
 ## Completed
 
@@ -20,13 +20,13 @@
 - [x] Style with Bulma (vendored, no CDN or build step)
 - [x] Validate: browse restaurants in a browser, check mobile
 
-## To do
-
 ### M3: Filtering with HTMX
 
-- [ ] Filter controls: cuisine type, venue category, Michelin status, rating tier
-- [ ] HTMX partial updates (no full page reloads)
-- [ ] Validate: filter combinations work, URL is shareable/bookmarkable
+- [x] Filter controls: cuisine type, venue category, Michelin status, rating tier
+- [x] HTMX partial updates (no full page reloads)
+- [x] Validate: filter combinations work, URL is shareable/bookmarkable
+
+## To do
 
 ### M4: Detail view + photos
 

@@ -33,10 +33,10 @@ class Restaurant(models.Model):
         THREE_STARS = "three_stars", "3 Stars"
 
     RATING_TIERS = {
-        range(9, 11): "Highly recommend",
-        range(7, 9): "Recommend",
-        range(5, 7): "It's OK",
-        range(1, 5): "Don't recommend",
+        "highly_recommend": {"label": "Highly recommend", "range": (9, 10)},
+        "recommend": {"label": "Recommend", "range": (7, 8)},
+        "ok": {"label": "It's OK", "range": (5, 6)},
+        "dont_recommend": {"label": "Don't recommend", "range": (1, 4)},
     }
 
     city = models.ForeignKey(City, on_delete=models.CASCADE, related_name="restaurants")
@@ -74,9 +74,10 @@ class Restaurant(models.Model):
 
     @property
     def rating_tier(self):
-        for r, label in self.RATING_TIERS.items():
-            if self.rating in r:
-                return label
+        for tier in self.RATING_TIERS.values():
+            lo, hi = tier["range"]
+            if lo <= self.rating <= hi:
+                return tier["label"]
         return ""
 
 

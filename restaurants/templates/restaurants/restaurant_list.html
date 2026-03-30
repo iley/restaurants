@@ -5,32 +5,76 @@
 {% block content %}
 <p class="mb-5">Here's a list of restaurants I visited so far in {{ city.name }}. All ratings are my personal opinion.</p>
 
-{% if restaurants %}
-<div class="table-container">
-  <table class="table is-fullwidth is-striped is-hoverable">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Cuisine</th>
-        <th>Venue</th>
-        <th>Rating</th>
-        <th>Michelin</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in restaurants %}
-      <tr>
-        <td>{{ r.name }}</td>
-        <td>{{ r.cuisine }}</td>
-        <td>{{ r.get_venue_category_display }}</td>
-        <td>{{ r.rating_tier }}</td>
-        <td>{% if r.michelin_status != "none" %}{{ r.get_michelin_status_display }}{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<form hx-get="{% url 'restaurant_list' city_slug=city.slug %}"
+      hx-trigger="change"
+      hx-target="#restaurant-table"
+      hx-push-url="true"
+      class="mb-5">
+  <div class="columns is-multiline is-mobile">
+    <div class="column is-half-mobile is-one-quarter-tablet">
+      <div class="field">
+        <label class="label is-small">Cuisine</label>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select name="cuisine">
+              <option value="">All</option>
+              {% for c in cuisines %}
+                <option value="{{ c }}" {% if filters.cuisine == c %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="column is-half-mobile is-one-quarter-tablet">
+      <div class="field">
+        <label class="label is-small">Venue kind</label>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select name="venue_category">
+              <option value="">All</option>
+              {% for value, label in venue_categories %}
+                <option value="{{ value }}" {% if filters.venue_category == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="column is-half-mobile is-one-quarter-tablet">
+      <div class="field">
+        <label class="label is-small">My Rating</label>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select name="rating_tier">
+              <option value="">All</option>
+              {% for value, label in rating_tiers.items %}
+                <option value="{{ value }}" {% if filters.rating_tier == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="column is-half-mobile is-one-quarter-tablet">
+      <div class="field">
+        <label class="label is-small">Michelin Guide</label>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select name="michelin_status">
+              <option value="">All</option>
+              {% for value, label in michelin_statuses %}
+                <option value="{{ value }}" {% if filters.michelin_status == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div id="restaurant-table">
+  {% include "restaurants/_restaurant_table.html" %}
 </div>
-{% else %}
-<p class="has-text-grey">No restaurants yet for {{ city.name }}.</p>
-{% endif %}
 {% endblock %}
