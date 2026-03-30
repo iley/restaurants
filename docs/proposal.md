@@ -81,6 +81,7 @@ The numeric rating is only visible in the admin.
 | Database   | SQLite                          | Simple, zero-config. Good enough for a single-user app on one server.    |
 | Deployment | Single VPS + Docker             | Dockerized app on a single VPS. Simple to deploy and maintain. SQLite file lives on a mounted volume. |
 | Photos     | Django file storage (initially) | Store on disk (Docker volume). Keep it simple for now.                   |
+| External data | Google Places API            | Auto-fill address, website, and Google Maps link when adding a restaurant. Cost is acceptable for single-user scale. |
 
 ## Open Questions
 
