@@ -19,7 +19,7 @@
         <td>{{ r.name }}</td>
         <td>{{ r.cuisine }}</td>
         <td>{{ r.get_venue_category_display }}</td>
-        <td>{{ r.rating }}/10</td>
+        <td>{{ r.rating_tier }}</td>
         <td>{% if r.michelin_status != "none" %}{{ r.get_michelin_status_display }}{% endif %}</td>
       </tr>
       {% endfor %}

@@ -30,6 +30,15 @@ _MICHELIN_RANK = Case(
     output_field=IntegerField(),
 )
 
+# Rating tiers: sort by tier, not by raw numeric rating (which is internal).
+_RATING_TIER_RANK = Case(
+    *(
+        When(rating__gte=tier["range"][0], rating__lte=tier["range"][1], then=Value(-i))
+        for i, tier in enumerate(Restaurant.RATING_TIERS.values())
+    ),
+    output_field=IntegerField(),
+)
+
 _TEXT_FIELDS = {"name", "cuisine", "venue_category"}
 
 
@@ -66,6 +75,8 @@ def restaurant_list(request, city_slug):
     for f, d in current_sort:
         if f == "michelin_status":
             expr = _MICHELIN_RANK
+        elif f == "rating":
+            expr = _RATING_TIER_RANK
         elif f in _TEXT_FIELDS:
             expr = Lower(f)
         else:
