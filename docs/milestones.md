@@ -21,18 +21,23 @@
 - HTMX partial updates -- filters work without full page reloads
 - **Validate:** filter combinations work, URL is shareable/bookmarkable
 
-## M4: Detail view + photos
+## M4: Load existing data
+
+- Load pre-existing data from the CSV file into the database
+- Perhaps use Django fixtures (evaluate alternative options)
+
+## M5: Detail view + photos
 
 - Restaurant detail page: all fields, visit history, photos
 - Photo upload through Django admin, display on detail page
 - **Validate:** click through from list to detail, see photos, check it reads well
 
-## M5: Google Places integration
+## M6: Google Places integration
 
 - Auto-fill address, website, and Google Maps link when adding a restaurant in the admin
 - **Validate:** add a new restaurant, confirm Places data populates correctly
 
-## M6: Deployment
+## M7: Deployment
 
 - Dockerfile + docker-compose (app + static/media file serving)
 - Deploy to a single VPS, SQLite on a mounted volume
