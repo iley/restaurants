@@ -81,6 +81,18 @@
         state: started
         enabled: true
 
+    # Docker bind-mounts create missing paths as directories, but SQLite
+    # needs a regular file. Touch it so the first deploy works.
+    - name: Ensure database file exists
+      file:
+        path: "{{ db_path }}"
+        state: touch
+        owner: ec2-user
+        group: ec2-user
+        mode: "0644"
+        modification_time: preserve
+        access_time: preserve
+
     - name: Deploy container service unit
       template:
         src: templates/restaurants.service.j2
