@@ -1,6 +1,6 @@
 # Progress
 
-## Current milestone: M4 — Detail view + photos
+## Current milestone: M4 — Load existing data
 
 ## Completed
 
@@ -28,18 +28,23 @@
 
 ## To do
 
-### M4: Detail view + photos
+### M4: Load existing data
+
+- [ ] Load pre-existing data from CSV into the database
+- [ ] Evaluate approach (Django fixtures vs alternatives)
+
+### M5: Detail view + photos
 
 - [ ] Restaurant detail page: all fields, visit history, photos
 - [ ] Photo upload through Django admin, display on detail page
 - [ ] Validate: click through from list to detail, photos display well
 
-### M5: Google Places integration
+### M6: Google Places integration
 
 - [ ] Auto-fill address, website, and Google Maps link in admin
 - [ ] Validate: add a new restaurant, confirm Places data populates
 
-### M6: Deployment
+### M7: Deployment
 
 - [ ] Dockerfile + docker-compose
 - [ ] Deploy to VPS, SQLite on mounted volume
