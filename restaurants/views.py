@@ -53,10 +53,14 @@ def restaurant_detail(request, city_slug, pk):
         pk=pk,
         city=city,
     )
+    visits = restaurant.visits.all()
+    has_notes = any(v.notes for v in visits)
     return render(request, "restaurants/restaurant_detail.html", {
         "restaurant": restaurant,
         "city": city,
         "cities": City.objects.all(),
+        "visits": visits,
+        "has_notes": has_notes,
     })
 
 
