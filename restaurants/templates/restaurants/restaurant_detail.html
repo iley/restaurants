@@ -11,7 +11,12 @@
   </ul>
 </nav>
 
-<h1 class="title">{{ restaurant.name }}{% if restaurant.closed %} <span class="tag is-dark">Closed</span>{% endif %}</h1>
+<div class="is-flex is-align-items-baseline is-justify-content-space-between">
+  <h1 class="title">{{ restaurant.name }}{% if restaurant.closed %} <span class="tag is-dark">Closed</span>{% endif %}</h1>
+  {% if user.is_staff %}
+  <a href="{% url 'admin:restaurants_restaurant_change' restaurant.pk %}" class="has-text-grey is-size-7">Edit</a>
+  {% endif %}
+</div>
 
 <div class="content">
   <table class="table">
