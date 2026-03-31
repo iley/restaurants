@@ -52,6 +52,7 @@ def restaurant_detail(request, city_slug, pk):
         Restaurant.objects.prefetch_related("visits", "photos"),
         pk=pk,
         city=city,
+        hidden=False,
     )
     visits = restaurant.visits.order_by("-date")
     has_notes = any(v.notes for v in visits)
@@ -66,7 +67,7 @@ def restaurant_detail(request, city_slug, pk):
 
 def restaurant_list(request, city_slug):
     city = get_object_or_404(City, slug=city_slug)
-    base_qs = Restaurant.objects.filter(city=city)
+    base_qs = Restaurant.objects.filter(city=city, hidden=False)
     restaurants = base_qs
 
     # Read filters from query params

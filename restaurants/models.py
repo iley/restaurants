@@ -77,6 +77,11 @@ class Restaurant(models.Model):
         max_digits=2, decimal_places=1, null=True, blank=True,
     )
 
+    hidden = models.BooleanField(default=False, help_text="Hide from the public list")
+    closed = models.BooleanField(
+        default=False, help_text="Restaurant has permanently closed",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -22,8 +22,9 @@ class PhotoInline(SortableTabularInline):
 
 @admin.register(Restaurant)
 class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
-    list_display = ["name", "city", "cuisine", "venue_category", "michelin_status", "rating"]
-    list_filter = ["city", "venue_category", "michelin_status"]
+    list_display = ["name", "city", "cuisine", "venue_category", "michelin_status", "rating", "hidden", "closed"]
+    list_filter = ["city", "venue_category", "michelin_status", "hidden", "closed"]
+    list_editable = ["hidden", "closed"]
     search_fields = ["name", "cuisine", "location", "comments"]
     inlines = [VisitInline, PhotoInline]
     actions = ["fetch_places_data", "force_fetch_places_data"]
