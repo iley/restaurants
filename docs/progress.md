@@ -1,6 +1,6 @@
 # Progress
 
-## Current milestone: M6 — Deployment
+## Current milestone: M8 — Google Places integration
 
 ## Completed
 
@@ -40,8 +40,6 @@
 - [x] Sort state preserved in URL (shareable) and across filter changes (via OOB swap)
 - [x] Validate: sort interactions work correctly, URL is shareable
 
-## To do
-
 ### M6: Deployment
 
 - [x] Django settings made production-ready (env vars, STATIC_ROOT, proxy headers)
@@ -54,9 +52,11 @@
 
 ### M7: Detail view + photos
 
-- [ ] Restaurant detail page: all fields, visit history, photos
-- [ ] Photo upload through Django admin, display on detail page
+- [x] Restaurant detail page: all fields, visit history, photos
+- [x] Photo upload through Django admin, display on detail page
 - [ ] Validate: click through from list to detail, photos display well
+
+## To do
 
 ### M8: Google Places integration
 

@@ -46,6 +46,20 @@ def index(request):
     return redirect("restaurant_list", city_slug=DEFAULT_CITY_SLUG)
 
 
+def restaurant_detail(request, city_slug, pk):
+    city = get_object_or_404(City, slug=city_slug)
+    restaurant = get_object_or_404(
+        Restaurant.objects.prefetch_related("visits", "photos"),
+        pk=pk,
+        city=city,
+    )
+    return render(request, "restaurants/restaurant_detail.html", {
+        "restaurant": restaurant,
+        "city": city,
+        "cities": City.objects.all(),
+    })
+
+
 def restaurant_list(request, city_slug):
     city = get_object_or_404(City, slug=city_slug)
     base_qs = Restaurant.objects.filter(city=city)

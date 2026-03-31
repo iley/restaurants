@@ -1,0 +1,79 @@
+{% extends "restaurants/base.html" %}
+
+{% block title %}{{ restaurant.name }} — Restaurants{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="{% url 'restaurant_list' city_slug=city.slug %}">{{ city.name }}</a></li>
+    <li class="is-active"><a aria-current="page">{{ restaurant.name }}</a></li>
+  </ul>
+</nav>
+
+<h1 class="title">{{ restaurant.name }}</h1>
+
+<div class="content">
+  <table class="table">
+    <tbody>
+      <tr><th>Cuisine</th><td>{{ restaurant.cuisine }}</td></tr>
+      <tr><th>Type</th><td>{{ restaurant.get_venue_category_display }}</td></tr>
+      {% if restaurant.location %}
+      <tr><th>Location</th><td>{{ restaurant.location }}</td></tr>
+      {% endif %}
+      <tr><th>Rating</th><td>{{ restaurant.rating_tier }}</td></tr>
+      {% if restaurant.michelin_status != "none" %}
+      <tr><th>Michelin</th><td>{{ restaurant.get_michelin_status_display }}</td></tr>
+      {% endif %}
+      {% if restaurant.address %}
+      <tr><th>Address</th><td>{{ restaurant.address }}</td></tr>
+      {% endif %}
+      {% if restaurant.website %}
+      <tr><th>Website</th><td><a href="{{ restaurant.website }}" target="_blank" rel="noopener">{{ restaurant.website }}</a></td></tr>
+      {% endif %}
+      {% if restaurant.google_maps_url %}
+      <tr><th>Google Maps</th><td><a href="{{ restaurant.google_maps_url }}" target="_blank" rel="noopener">View on Google Maps</a></td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  {% if restaurant.comments %}
+  <h2 class="subtitle is-5">Comments</h2>
+  <p>{{ restaurant.comments|linebreaksbr }}</p>
+  {% endif %}
+
+  {% with visits=restaurant.visits.all %}
+  {% if visits %}
+  <h2 class="subtitle is-5">Visits</h2>
+  <table class="table is-striped">
+    <thead><tr><th>Date</th><th>Notes</th></tr></thead>
+    <tbody>
+      {% for visit in visits %}
+      <tr>
+        <td>{{ visit.date }}</td>
+        <td>{{ visit.notes }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% endwith %}
+
+  {% with photos=restaurant.photos.all %}
+  {% if photos %}
+  <h2 class="subtitle is-5">Photos</h2>
+  <div class="columns is-multiline">
+    {% for photo in photos %}
+    <div class="column is-one-third-desktop is-half-tablet">
+      <figure class="image">
+        <img src="{{ photo.image.url }}" alt="{{ photo.caption|default:restaurant.name }}">
+      </figure>
+      {% if photo.caption %}
+      <p class="has-text-centered has-text-grey is-size-7 mt-1">{{ photo.caption }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+</div>
+{% endblock %}

@@ -16,7 +16,7 @@
     <tbody>
       {% for r in restaurants %}
       <tr>
-        <td>{{ r.name }}</td>
+        <td><a href="{% url 'restaurant_detail' city_slug=city.slug pk=r.pk %}">{{ r.name }}</a></td>
         <td>{{ r.cuisine }}</td>
         <td>{{ r.get_venue_category_display }}</td>
         <td>{{ r.rating_tier }}</td>
