@@ -30,6 +30,7 @@ class Restaurant(models.Model):
         PUB = "pub", "Pub"
         SANDWICH_PLACE = "sandwich_place", "Sandwich place"
         BAKERY = "bakery", "Bakery"
+        FOOD_TRUCK = "food_truck", "Food truck"
         OTHER = "other", "Other"
 
     class MichelinStatus(models.TextChoices):
