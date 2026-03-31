@@ -14,4 +14,4 @@ domain: restaurants.istrukov.com
 django_debug: "False"
 django_allowed_hosts: "restaurants.istrukov.com"
 csrf_trusted_origins: "https://restaurants.istrukov.com"
-# django_secret_key: set via --extra-vars or ansible-vault
+# django_secret_key and google_places_api_key: set in ansible/secrets.yml

@@ -12,3 +12,4 @@ terraform/.terraform/
 terraform/terraform.tfvars
 ansible/inventory.ini
 ansible/secret_key
+ansible/secrets.yml

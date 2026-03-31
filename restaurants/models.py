@@ -63,6 +63,10 @@ class Restaurant(models.Model):
     address = models.CharField(max_length=300, blank=True)
     website = models.URLField(blank=True)
     google_maps_url = models.URLField(blank=True)
+    google_place_id = models.CharField(max_length=300, blank=True)
+    google_rating = models.DecimalField(
+        max_digits=2, decimal_places=1, null=True, blank=True,
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 

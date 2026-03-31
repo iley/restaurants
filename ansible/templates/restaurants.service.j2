@@ -17,6 +17,7 @@ ExecStart=/usr/bin/docker run --rm \
     -e DJANGO_DEBUG={{ django_debug }} \
     -e DJANGO_ALLOWED_HOSTS={{ django_allowed_hosts }} \
     -e CSRF_TRUSTED_ORIGINS={{ csrf_trusted_origins }} \
+    -e GOOGLE_PLACES_API_KEY={{ google_places_api_key | default('', true) }} \
     -e DATABASE_PATH=/app/data/db.sqlite3 \
     -e MEDIA_ROOT=/app/data/media \
     -e STATIC_ROOT=/app/data/static \
