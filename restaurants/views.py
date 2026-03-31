@@ -14,9 +14,9 @@ DEFAULT_SORT = "-rating,name"
 # Single source of truth for sortable columns: order, labels, default direction.
 SORT_COLUMNS = [
     {"field": "name", "label": "Name", "default_dir": "asc"},
+    {"field": "rating", "label": "My Rating", "default_dir": "desc"},
     {"field": "cuisine", "label": "Cuisine", "default_dir": "asc"},
     {"field": "venue_category", "label": "Type", "default_dir": "asc"},
-    {"field": "rating", "label": "My Rating", "default_dir": "desc"},
     {"field": "michelin_status", "label": "Michelin", "default_dir": "desc"},
 ]
 _SORTABLE_FIELDS = {col["field"] for col in SORT_COLUMNS}
