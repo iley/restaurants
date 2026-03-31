@@ -1,5 +1,6 @@
 import logging
 
+from adminsortable2.admin import SortableAdminBase, SortableTabularInline
 from django.conf import settings
 from django.contrib import admin
 
@@ -14,13 +15,13 @@ class VisitInline(admin.TabularInline):
     extra = 1
 
 
-class PhotoInline(admin.TabularInline):
+class PhotoInline(SortableTabularInline):
     model = Photo
-    extra = 1
+    extra = 0
 
 
 @admin.register(Restaurant)
-class RestaurantAdmin(admin.ModelAdmin):
+class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
     list_display = ["name", "city", "cuisine", "venue_category", "michelin_status", "rating"]
     list_filter = ["city", "venue_category", "michelin_status"]
     search_fields = ["name", "cuisine", "location", "comments"]

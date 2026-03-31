@@ -5,6 +5,7 @@ description = "Personal restaurant tracker"
 requires-python = ">=3.13"
 dependencies = [
     "django>=5.1,<5.2",
+    "django-admin-sortable2>=2.3.1",
     "gunicorn>=23.0",
     "markdown>=3.10.2",
     "nh3>=0.3.4",

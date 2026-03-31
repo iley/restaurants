@@ -1,0 +1,119 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+.photo-dropzone {
+    border: 2px dashed #999;
+    border-radius: 8px;
+    padding: 30px 20px;
+    text-align: center;
+    color: #666;
+    cursor: pointer;
+    margin-bottom: 15px;
+    transition: border-color 0.2s, background 0.2s;
+}
+.photo-dropzone:hover {
+    border-color: #417690;
+}
+.photo-dropzone.dragover {
+    border-color: #417690;
+    background: rgba(65, 118, 144, 0.08);
+    color: #417690;
+}
+.photo-dropzone p {
+    margin: 0;
+    font-size: 14px;
+}
+.photo-dropzone-previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    justify-content: center;
+}
+.photo-dropzone-previews img {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+</style>
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const photosGroup = document.getElementById('photos-group');
+    if (!photosGroup) return;
+
+    // Build the dropzone
+    const dropzone = document.createElement('div');
+    dropzone.className = 'photo-dropzone';
+    dropzone.innerHTML = '<p>Drop photos here or click to select</p>' +
+                         '<div class="photo-dropzone-previews"></div>';
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.multiple = true;
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
+    dropzone.appendChild(fileInput);
+
+    photosGroup.appendChild(dropzone);
+
+    // Click to select files
+    dropzone.addEventListener('click', function(e) {
+        if (e.target !== fileInput) fileInput.click();
+    });
+    fileInput.addEventListener('change', function() {
+        handleFiles(Array.from(fileInput.files));
+        fileInput.value = '';
+    });
+
+    // Drag and drop
+    dropzone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', function() {
+        dropzone.classList.remove('dragover');
+    });
+    dropzone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        handleFiles(Array.from(e.dataTransfer.files).filter(function(f) {
+            return f.type.startsWith('image/');
+        }));
+    });
+
+    function handleFiles(files) {
+        const previews = dropzone.querySelector('.photo-dropzone-previews');
+        files.forEach(function(file) {
+            addPhotoRow(file);
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            previews.appendChild(img);
+        });
+    }
+
+    function addPhotoRow(file) {
+        const totalFormsInput = document.getElementById('id_photos-TOTAL_FORMS');
+        const index = parseInt(totalFormsInput.value);
+
+        // Click "Add another Photo" to create a new inline row
+        const addLink = photosGroup.querySelector('.add-row a, .add-row input[type="submit"]');
+        if (addLink) addLink.click();
+
+        // Set the file on the new row's image input
+        const newInput = document.getElementById('id_photos-' + index + '-image');
+        if (newInput) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            newInput.files = dt.files;
+        }
+    }
+});
+</script>
+{% endblock %}
