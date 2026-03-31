@@ -38,7 +38,7 @@
 - [x] Stable sorting: previous sort columns kept as tiebreakers
 - [x] Default sort: rating descending, then name ascending
 - [x] Sort state preserved in URL (shareable) and across filter changes (via OOB swap)
-- [ ] Validate: sort interactions work correctly, URL is shareable
+- [x] Validate: sort interactions work correctly, URL is shareable
 
 ## To do
 
@@ -49,8 +49,8 @@
 - [x] GitHub Actions workflow (build arm64 image, push to GHCR)
 - [x] Terraform config (EC2, security group, EIP, EBS volume)
 - [x] Ansible playbook (Docker, nginx, container deployment)
-- [ ] Provision infrastructure and deploy
-- [ ] Validate: app running on restaurants.istrukov.com
+- [x] Provision infrastructure and deploy
+- [x] Validate: app running on restaurants.istrukov.com
 
 ### M7: Detail view + photos
 
