@@ -36,6 +36,14 @@ uv run manage.py generate_thumbnails         # only photos missing a thumbnail
 uv run manage.py generate_thumbnails --force  # regenerate all thumbnails
 ```
 
+### EXIF stripping
+
+EXIF metadata (GPS location, timestamps, etc.) is automatically stripped from photos on upload. To strip metadata from previously uploaded photos:
+
+```bash
+uv run manage.py strip_exif
+```
+
 ## Deployment
 
 ### Architecture

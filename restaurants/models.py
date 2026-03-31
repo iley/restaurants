@@ -130,9 +130,27 @@ class Photo(models.Model):
         if update_fields is not None and "image" not in update_fields:
             return
         image_changed = self.image.name != self._original_image_name
+        if self.image and image_changed:
+            self._strip_exif()
         if self.image and (image_changed or not self.thumbnail):
             self._generate_thumbnail()
             self._original_image_name = self.image.name
+
+    def _strip_exif(self):
+        """Re-save the image without EXIF metadata (location, timestamps, etc.)."""
+        img = Image.open(self.image)
+        fmt = img.format
+        img = ImageOps.exif_transpose(img)
+        save_kwargs = {}
+        if fmt == "JPEG":
+            save_kwargs["quality"] = 95
+        buf = io.BytesIO()
+        img.save(buf, format=fmt, **save_kwargs)
+        buf.seek(0)
+        name = self.image.name
+        self.image.storage.delete(name)
+        self.image.save(name, ContentFile(buf.read()), save=False)
+        super().save(update_fields=["image"])
 
     def _generate_thumbnail(self):
         img = Image.open(self.image)
