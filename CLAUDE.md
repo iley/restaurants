@@ -6,6 +6,7 @@ Stack: Django, HTMX, Bulma, SQLite. Deployed via Docker on a single VPS.
 
 ## Docs
 
+- [README.md](README.md) -- developer/user-facing documentation (commands, deployment, features)
 - [docs/proposal.md](docs/proposal.md) -- requirements, data model, technical decisions
 - [docs/milestones.md](docs/milestones.md) -- implementation breakdown
 - [docs/progress.md](docs/progress.md) -- current progress and remaining work

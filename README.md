@@ -27,6 +27,15 @@ Also available as admin actions: "Fetch Google Places data" (backfill) and "Re-f
 
 New restaurants are automatically enriched on save when the API key is configured.
 
+### Thumbnails
+
+Thumbnails are generated automatically on photo upload. To generate thumbnails for existing photos:
+
+```bash
+uv run manage.py generate_thumbnails         # only photos missing a thumbnail
+uv run manage.py generate_thumbnails --force  # regenerate all thumbnails
+```
+
 ## Deployment
 
 ### Architecture
