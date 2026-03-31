@@ -20,7 +20,7 @@
         <td>{{ r.cuisine }}</td>
         <td>{{ r.get_venue_category_display }}</td>
         <td>{{ r.rating_tier }}</td>
-        <td>{% if r.michelin_status != "none" %}{{ r.get_michelin_status_display }}{% endif %}</td>
+        <td>{% if r.michelin_status != "none" %}{% include "restaurants/_michelin_icon.html" with michelin_status=r.michelin_status michelin_display=r.get_michelin_status_display %}{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>

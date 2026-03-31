@@ -66,3 +66,8 @@
 - [x] Centralized secrets in `ansible/secrets.yml`, deploy passes `GOOGLE_PLACES_API_KEY` to container
 - [x] Validate: add a new restaurant, confirm Places data populates
 - [x] Validate: run bulk backfill, review results
+
+### Other improvements
+
+- [x] Thumbnails for images to save bandwidth
+- [x] Images for Michelin designations
