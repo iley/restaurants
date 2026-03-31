@@ -26,6 +26,7 @@
     </tbody>
   </table>
 </div>
+<p class="has-text-grey is-size-7 mt-2">{{ restaurants|length }} restaurant{{ restaurants|length|pluralize }} shown</p>
 {% elif filters.cuisine or filters.venue_category or filters.rating_tier or filters.michelin_status %}
 <p class="has-text-grey">No restaurants match the selected filters.</p>
 {% else %}
