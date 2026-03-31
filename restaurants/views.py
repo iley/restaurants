@@ -125,9 +125,8 @@ def restaurant_list(request, city_slug):
         "cuisines": cuisines,
         "venue_categories": Restaurant.VenueCategory.choices,
         "michelin_statuses": [
-            (value, label)
+            (value, "No designation" if value == Restaurant.MichelinStatus.NONE else label)
             for value, label in Restaurant.MichelinStatus.choices
-            if value != Restaurant.MichelinStatus.NONE
         ],
         "rating_tiers": rating_tier_choices,
         "filters": filters,
