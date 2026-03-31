@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] Tags (e.g. "brunch", "wine" etc.)
 - [ ] Match colors on Michelin icons
 - [ ] Backups!
 - [x] Strip metadata from image files on upload
