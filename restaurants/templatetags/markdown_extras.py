@@ -1,3 +1,5 @@
+import re
+
 import markdown
 import nh3
 from django import template
@@ -14,6 +16,14 @@ ALLOWED_TAGS = {
 ALLOWED_ATTRIBUTES = {
     "a": {"href", "title"},
 }
+
+
+@register.filter(name="display_url")
+def display_url(value):
+    """Strip protocol and trailing slash for display: https://example.com/ → example.com"""
+    if not value:
+        return ""
+    return re.sub(r"^https?://", "", value).rstrip("/")
 
 
 @register.filter(name="markdown")

@@ -32,7 +32,7 @@
       <tr><th>Address</th><td>{% if restaurant.google_maps_url %}<a href="{{ restaurant.google_maps_url }}" target="_blank" rel="noopener">{{ restaurant.address }}</a>{% else %}{{ restaurant.address }}{% endif %}</td></tr>
       {% endif %}
       {% if restaurant.website %}
-      <tr><th>Website</th><td><a href="{{ restaurant.website }}" target="_blank" rel="noopener">{{ restaurant.website }}</a></td></tr>
+      <tr><th>Website</th><td><a href="{{ restaurant.website }}" target="_blank" rel="noopener">{{ restaurant.website|display_url }}</a></td></tr>
       {% endif %}
     </tbody>
   </table>
