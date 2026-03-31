@@ -20,3 +20,24 @@ uv run manage.py createsuperuser # create admin user
 uv run manage.py shell           # interactive Django shell
 uv add <package>                 # add a dependency
 ```
+
+### Google Places integration
+
+Requires `GOOGLE_PLACES_API_KEY` environment variable.
+
+```bash
+uv run manage.py fetch_places_data              # backfill restaurants missing any Places field
+uv run manage.py fetch_places_data --city dublin # only a specific city
+uv run manage.py fetch_places_data --force       # overwrite existing data with fresh API values
+uv run manage.py fetch_places_data --all         # include all restaurants, not just those missing data
+```
+
+Also available as admin actions: "Fetch Google Places data" (backfill) and "Re-fetch Google Places data (overwrite)".
+
+### Deployment
+
+```bash
+./deploy.sh                      # deploy to VPS (creates ansible/secrets.yml on first run)
+```
+
+Secrets live in `ansible/secrets.yml` (gitignored). See `ansible/secrets.yml.example` for the format.

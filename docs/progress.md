@@ -1,6 +1,6 @@
 # Progress
 
-## Current milestone: M8 — Google Places integration
+## Current milestone: Validation & polish
 
 ## Completed
 
@@ -56,9 +56,13 @@
 - [x] Photo upload through Django admin, display on detail page
 - [ ] Validate: click through from list to detail, photos display well
 
-## To do
-
 ### M8: Google Places integration
 
-- [ ] Auto-fill address, website, and Google Maps link in admin
+- [x] Places API service (`restaurants/places.py`) — calls Google Places Text Search API
+- [x] Auto-fill address, website, Google Maps link, and Google rating on save in admin
+- [x] Admin actions: "Fetch Google Places data" (backfill) and "Re-fetch Google Places data (overwrite)"
+- [x] Management command `fetch_places_data` with `--city`, `--all`, `--force` options
+- [x] `google_place_id` and `google_rating` fields on Restaurant model
+- [x] Centralized secrets in `ansible/secrets.yml`, deploy passes `GOOGLE_PLACES_API_KEY` to container
 - [ ] Validate: add a new restaurant, confirm Places data populates
+- [ ] Validate: run bulk backfill, review results
