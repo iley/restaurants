@@ -96,3 +96,12 @@ ssh ec2-user@<elastic-ip> "sudo mv ~/db.sqlite3 /opt/restaurants/db.sqlite3 && s
 ssh ec2-user@<elastic-ip>
 sudo docker exec -it restaurants python manage.py createsuperuser
 ```
+
+### Running admin commands on the server
+
+SSH into the server and use `docker exec` to run Django management commands inside the running container:
+
+```bash
+ssh ec2-user@<elastic-ip>
+sudo docker exec -it restaurants python manage.py <command>
+```

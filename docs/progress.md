@@ -54,7 +54,7 @@
 
 - [x] Restaurant detail page: all fields, visit history, photos
 - [x] Photo upload through Django admin, display on detail page
-- [ ] Validate: click through from list to detail, photos display well
+- [x] Validate: click through from list to detail, photos display well
 
 ### M8: Google Places integration
 
@@ -64,5 +64,5 @@
 - [x] Management command `fetch_places_data` with `--city`, `--all`, `--force` options
 - [x] `google_place_id` and `google_rating` fields on Restaurant model
 - [x] Centralized secrets in `ansible/secrets.yml`, deploy passes `GOOGLE_PLACES_API_KEY` to container
-- [ ] Validate: add a new restaurant, confirm Places data populates
-- [ ] Validate: run bulk backfill, review results
+- [x] Validate: add a new restaurant, confirm Places data populates
+- [x] Validate: run bulk backfill, review results
