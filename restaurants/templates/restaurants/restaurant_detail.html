@@ -21,7 +21,7 @@
       {% if restaurant.location %}
       <tr><th>Location</th><td>{{ restaurant.location }}</td></tr>
       {% endif %}
-      <tr><th>Rating</th><td>{{ restaurant.rating_tier }}</td></tr>
+      <tr><th>My Rating</th><td>{{ restaurant.rating_tier }}</td></tr>
       {% if restaurant.michelin_status != "none" %}
       <tr><th>Michelin</th><td>{% include "restaurants/_michelin_icon.html" with michelin_status=restaurant.michelin_status michelin_display=restaurant.get_michelin_status_display %} {{ restaurant.get_michelin_status_display }}</td></tr>
       {% endif %}
@@ -38,7 +38,7 @@
   </table>
 
   {% if restaurant.comments %}
-  <h2 class="subtitle is-5">Comments</h2>
+  <h2 class="subtitle is-5">Comment</h2>
   {{ restaurant.comments|markdown }}
   {% endif %}
 
