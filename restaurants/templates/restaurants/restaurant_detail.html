@@ -1,4 +1,5 @@
 {% extends "restaurants/base.html" %}
+{% load markdown_extras %}
 
 {% block title %}{{ restaurant.name }} — Restaurants{% endblock %}
 
@@ -38,7 +39,7 @@
 
   {% if restaurant.comments %}
   <h2 class="subtitle is-5">Comments</h2>
-  <p>{{ restaurant.comments|linebreaksbr }}</p>
+  {{ restaurant.comments|markdown }}
   {% endif %}
 
   {% with visits=restaurant.visits.all %}

@@ -65,7 +65,7 @@ class Restaurant(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(10)],
         help_text="Internal rating 1-10",
     )
-    comments = models.TextField(blank=True)
+    comments = models.TextField(blank=True, help_text="Markdown supported")
 
     # Fields for Google Places integration (M5) — useful for manual entry too
     address = models.CharField(max_length=300, blank=True)
