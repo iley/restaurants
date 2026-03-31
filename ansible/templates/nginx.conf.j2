@@ -2,7 +2,7 @@ server {
     listen 80;
     server_name {{ domain }};
 
-    client_max_body_size 10M;
+    client_max_body_size 100M;
 
     location /static/ {
         alias {{ static_dir }}/;
