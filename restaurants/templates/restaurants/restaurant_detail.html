@@ -65,7 +65,11 @@
     {% for photo in photos %}
     <div class="column is-one-third-desktop is-half-tablet">
       <figure class="image">
-        <img src="{{ photo.image.url }}" alt="{{ photo.caption|default:restaurant.name }}">
+        <a href="{{ photo.image.url }}" target="_blank" rel="noopener">
+          <img src="{% if photo.thumbnail %}{{ photo.thumbnail.url }}{% else %}{{ photo.image.url }}{% endif %}"
+               alt="{{ photo.caption|default:restaurant.name }}"
+               loading="lazy">
+        </a>
       </figure>
       {% if photo.caption %}
       <p class="has-text-centered has-text-grey is-size-7 mt-1">{{ photo.caption }}</p>

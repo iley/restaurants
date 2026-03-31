@@ -1,5 +1,13 @@
+import io
+from pathlib import PurePath
+
+from django.core.files.base import ContentFile
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from PIL import Image, ImageOps
+
+THUMBNAIL_MAX_SIZE = (800, 800)
+THUMBNAIL_QUALITY = 80
 
 
 class City(models.Model):
@@ -100,6 +108,7 @@ class Visit(models.Model):
 class Photo(models.Model):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="photos")
     image = models.ImageField(upload_to="photos/")
+    thumbnail = models.ImageField(upload_to="photos/thumbs/", blank=True)
     caption = models.CharField(max_length=200, blank=True)
     order = models.PositiveIntegerField(default=0, help_text="Lower numbers appear first")
 
@@ -108,3 +117,39 @@ class Photo(models.Model):
 
     def __str__(self):
         return f"{self.restaurant.name} — {self.caption or 'photo'}"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Track the image name so we can detect changes in save()
+        self._original_image_name = self.image.name if self.image else None
+
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        super().save(*args, **kwargs)
+        # Only generate thumbnails on full saves or when image is in update_fields
+        if update_fields is not None and "image" not in update_fields:
+            return
+        image_changed = self.image.name != self._original_image_name
+        if self.image and (image_changed or not self.thumbnail):
+            self._generate_thumbnail()
+            self._original_image_name = self.image.name
+
+    def _generate_thumbnail(self):
+        img = Image.open(self.image)
+        img = ImageOps.exif_transpose(img)
+        img.thumbnail(THUMBNAIL_MAX_SIZE)
+        if img.mode in ("RGBA", "LA"):
+            background = Image.new("RGB", img.size, (255, 255, 255))
+            background.paste(img, mask=img.split()[-1])
+            img = background
+        elif img.mode != "RGB":
+            img = img.convert("RGB")
+
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=THUMBNAIL_QUALITY)
+        buf.seek(0)
+
+        thumb_name = PurePath(self.image.name).stem + ".jpg"
+        self.thumbnail.save(thumb_name, ContentFile(buf.read()), save=False)
+        # save only the thumbnail field to avoid recursion
+        super().save(update_fields=["thumbnail"])
