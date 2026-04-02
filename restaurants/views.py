@@ -54,7 +54,7 @@ def restaurant_detail(request, city_slug, pk):
         city=city,
         hidden=False,
     )
-    visits = restaurant.visits.order_by("-date")
+    visits = restaurant.visits.order_by("date")
     has_notes = any(v.notes for v in visits)
     return render(request, "restaurants/restaurant_detail.html", {
         "restaurant": restaurant,
