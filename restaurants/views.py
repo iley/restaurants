@@ -49,7 +49,7 @@ def index(request):
 def restaurant_detail(request, city_slug, pk):
     city = get_object_or_404(City, slug=city_slug)
     restaurant = get_object_or_404(
-        Restaurant.objects.prefetch_related("visits", "photos"),
+        Restaurant.objects.prefetch_related("visits", "photos", "tags"),
         pk=pk,
         city=city,
         hidden=False,
@@ -67,7 +67,7 @@ def restaurant_detail(request, city_slug, pk):
 
 def restaurant_list(request, city_slug):
     city = get_object_or_404(City, slug=city_slug)
-    base_qs = Restaurant.objects.filter(city=city, hidden=False)
+    base_qs = Restaurant.objects.filter(city=city, hidden=False).prefetch_related("tags")
     restaurants = base_qs
 
     # Read filters from query params

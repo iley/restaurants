@@ -4,7 +4,7 @@ from adminsortable2.admin import SortableAdminBase, SortableTabularInline
 from django.conf import settings
 from django.contrib import admin
 
-from .models import City, Photo, Restaurant, Visit
+from .models import City, Photo, Restaurant, Tag, Visit
 from .places import apply_place_data, search_place
 
 logger = logging.getLogger(__name__)
@@ -26,6 +26,7 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
     list_filter = ["city", "venue_category", "michelin_status", "hidden", "closed"]
     list_editable = ["hidden", "closed"]
     search_fields = ["name", "cuisine", "location", "comments"]
+    filter_horizontal = ["tags"]
     inlines = [VisitInline, PhotoInline]
     actions = ["fetch_places_data", "force_fetch_places_data"]
 
@@ -75,6 +76,12 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
             request,
             f"Places data: {updated} updated, {not_found} not found, {skipped} already complete.",
         )
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ["name"]
+    search_fields = ["name"]
 
 
 @admin.register(City)

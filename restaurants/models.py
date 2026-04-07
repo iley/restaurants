@@ -22,6 +22,16 @@ class City(models.Model):
         return self.name
 
 
+class Tag(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Restaurant(models.Model):
     class VenueCategory(models.TextChoices):
         RESTAURANT = "restaurant", "Restaurant"
@@ -81,6 +91,7 @@ class Restaurant(models.Model):
     closed = models.BooleanField(
         default=False, help_text="Restaurant has permanently closed",
     )
+    tags = models.ManyToManyField(Tag, blank=True, related_name="restaurants")
 
     created_at = models.DateTimeField(auto_now_add=True)
 
