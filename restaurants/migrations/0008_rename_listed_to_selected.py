@@ -17,6 +17,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='restaurant',
             name='michelin_status',
-            field=models.CharField(choices=[('none', 'None'), ('selected', 'Michelin Selected'), ('bib_gourmand', 'Bib Gourmand'), ('one_star', '1 Star'), ('two_stars', '2 Stars'), ('three_stars', '3 Stars')], default='none', max_length=20),
+            field=models.CharField(choices=[('none', 'None'), ('selected', 'Selected'), ('bib_gourmand', 'Bib Gourmand'), ('one_star', '1 Star'), ('two_stars', '2 Stars'), ('three_stars', '3 Stars')], default='none', max_length=20),
         ),
     ]

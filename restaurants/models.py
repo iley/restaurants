@@ -35,7 +35,7 @@ class Restaurant(models.Model):
 
     class MichelinStatus(models.TextChoices):
         NONE = "none", "None"
-        SELECTED = "selected", "Michelin Selected"
+        SELECTED = "selected", "Selected"
         BIB_GOURMAND = "bib_gourmand", "Bib Gourmand"
         ONE_STAR = "one_star", "1 Star"
         TWO_STARS = "two_stars", "2 Stars"
