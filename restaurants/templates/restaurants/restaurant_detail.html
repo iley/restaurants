@@ -12,7 +12,7 @@
 </nav>
 
 <div class="is-flex is-align-items-baseline is-justify-content-space-between">
-  <h1 class="title">{{ restaurant.name }}{% if restaurant.closed %} <span class="tag is-dark">Closed</span>{% endif %}{% for tag in restaurant.tags.all %} <span class="tag {{ tag.color }}">{{ tag.name }}</span>{% endfor %}</h1>
+  <h1 class="title">{{ restaurant.name }}{% if restaurant.closed %} <span class="tag is-dark">Closed</span>{% endif %}</h1>
   {% if user.is_staff %}
   <a href="{% url 'admin:restaurants_restaurant_change' restaurant.pk %}" class="has-text-grey is-size-7">Edit</a>
   {% endif %}
@@ -39,6 +39,11 @@
       {% if restaurant.website %}
       <tr><th>Website</th><td><a href="{{ restaurant.website }}" target="_blank" rel="noopener">{{ restaurant.website|display_url }}</a></td></tr>
       {% endif %}
+      {% with tags=restaurant.tags.all %}
+      {% if tags %}
+      <tr><th>Tags</th><td>{% for tag in tags %}<span class="tag {{ tag.color }}">{{ tag.name }}</span> {% endfor %}</td></tr>
+      {% endif %}
+      {% endwith %}
     </tbody>
   </table>
 

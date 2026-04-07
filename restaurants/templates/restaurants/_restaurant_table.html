@@ -11,16 +11,18 @@
           </a>
         </th>
         {% endfor %}
+        <th>Tags</th>
       </tr>
     </thead>
     <tbody>
       {% for r in restaurants %}
       <tr>
-        <td><a href="{% url 'restaurant_detail' city_slug=city.slug pk=r.pk %}">{{ r.name }}</a>{% if r.closed %} <span class="tag is-dark is-small">Closed</span>{% endif %}{% for tag in r.tags.all %} <span class="tag {{ tag.color }} is-small">{{ tag.name }}</span>{% endfor %}</td>
+        <td><a href="{% url 'restaurant_detail' city_slug=city.slug pk=r.pk %}">{{ r.name }}</a>{% if r.closed %} <span class="tag is-dark is-small">Closed</span>{% endif %}</td>
         <td>{{ r.rating_tier }}</td>
         <td>{{ r.cuisine }}</td>
         <td>{{ r.get_venue_category_display }}</td>
         <td>{% if r.michelin_status != "none" %}{% include "restaurants/_michelin_icon.html" with michelin_status=r.michelin_status michelin_display=r.get_michelin_status_display %}{% endif %}</td>
+        <td>{% for tag in r.tags.all %}<span class="tag {{ tag.color }} is-small">{{ tag.name }}</span> {% endfor %}</td>
       </tr>
       {% endfor %}
     </tbody>
