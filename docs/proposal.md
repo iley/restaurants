@@ -8,7 +8,7 @@ I currently track restaurants I've visited in a Google Sheets spreadsheet. For e
 - Category (type of cuisine)
 - Location (neighbourhood or area)
 - Personal rating out of 10
-- Michelin awards (Bib Gourmand, stars, "Michelin listed")
+- Michelin awards (Bib Gourmand, stars, "Michelin Selected")
 - Whether I've been more than once
 - Date visited
 - Free-text comments
