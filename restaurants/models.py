@@ -23,7 +23,17 @@ class City(models.Model):
 
 
 class Tag(models.Model):
+    class Color(models.TextChoices):
+        BLUE = "is-info", "Blue"
+        GREEN = "is-success", "Green"
+        YELLOW = "is-warning", "Yellow"
+        RED = "is-danger", "Red"
+        PURPLE = "is-link", "Purple"
+        TEAL = "is-primary", "Teal"
+        DARK = "is-dark", "Dark"
+
     name = models.CharField(max_length=100, unique=True)
+    color = models.CharField(max_length=20, choices=Color.choices, default=Color.BLUE)
 
     class Meta:
         ordering = ["name"]

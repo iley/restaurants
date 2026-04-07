@@ -80,7 +80,7 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ["name"]
+    list_display = ["name", "color"]
     search_fields = ["name"]
 
 
