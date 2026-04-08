@@ -89,13 +89,15 @@
 {% if city.has_bbox %}
 <div class="tabs is-boxed mb-4">
   <ul>
-    <li class="{% if view_mode != 'map' %}is-active{% endif %}">
+    <li id="tab-list" class="{% if view_mode != 'map' %}is-active{% endif %}">
       <a hx-get="{% url 'restaurant_list' city_slug=city.slug %}?{{ filter_query }}"
-         hx-target="#restaurant-content" hx-push-url="true">List</a>
+         hx-target="#restaurant-content" hx-push-url="true"
+         onclick="document.getElementById('tab-list').classList.add('is-active'); document.getElementById('tab-map').classList.remove('is-active')">List</a>
     </li>
-    <li class="{% if view_mode == 'map' %}is-active{% endif %}">
+    <li id="tab-map" class="{% if view_mode == 'map' %}is-active{% endif %}">
       <a hx-get="{% url 'restaurant_list' city_slug=city.slug %}?{{ filter_query }}&view=map"
-         hx-target="#restaurant-content" hx-push-url="true">Map</a>
+         hx-target="#restaurant-content" hx-push-url="true"
+         onclick="document.getElementById('tab-map').classList.add('is-active'); document.getElementById('tab-list').classList.remove('is-active')">Map</a>
     </li>
   </ul>
 </div>
