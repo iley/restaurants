@@ -5,7 +5,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
-FIELD_MASK = "places.id,places.formattedAddress,places.websiteUri,places.googleMapsUri,places.rating"
+FIELD_MASK = "places.id,places.formattedAddress,places.websiteUri,places.googleMapsUri,places.rating,places.location"
 
 
 def search_place(name: str, city: str, api_key: str) -> dict | None:
@@ -36,12 +36,15 @@ def search_place(name: str, city: str, api_key: str) -> dict | None:
         return None
 
     place = places[0]
+    location = place.get("location", {})
     return {
         "place_id": place.get("id", ""),
         "address": place.get("formattedAddress", ""),
         "website": place.get("websiteUri", ""),
         "google_maps_url": place.get("googleMapsUri", ""),
         "google_rating": place.get("rating"),
+        "latitude": location.get("latitude"),
+        "longitude": location.get("longitude"),
     }
 
 
@@ -57,6 +60,8 @@ def apply_place_data(restaurant, data: dict, force: bool = False) -> list[str]:
         "website": "website",
         "google_maps_url": "google_maps_url",
         "google_rating": "google_rating",
+        "latitude": "latitude",
+        "longitude": "longitude",
     }
     updated = []
     for model_field, data_key in field_map.items():

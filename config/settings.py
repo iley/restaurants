@@ -116,6 +116,8 @@ MEDIA_ROOT = os.environ.get("MEDIA_ROOT", BASE_DIR / "media")
 
 GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")
 
+TILES_DIR = os.environ.get("TILES_DIR", BASE_DIR / "tiles")
+
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     CSRF_TRUSTED_ORIGINS = os.environ.get(

@@ -45,6 +45,7 @@
         - "{{ data_dir }}"
         - "{{ media_dir }}"
         - "{{ static_dir }}"
+        - "{{ tiles_dir }}"
 
     - name: Install Docker
       dnf:

@@ -1,16 +1,24 @@
 {% extends "restaurants/base.html" %}
+{% load static %}
 
 {% block title %}{{ city.name }} — Restaurants{% endblock %}
+
+{% block extra_head %}
+{% if city.has_bbox %}
+<link rel="stylesheet" href="{% static 'restaurants/map/maplibre-gl.css' %}">
+{% endif %}
+{% endblock %}
 
 {% block content %}
 <p class="mb-5">Here's a list of restaurants I visited so far in {{ city.name }}. All ratings are my personal opinion.</p>
 
 <form hx-get="{% url 'restaurant_list' city_slug=city.slug %}"
       hx-trigger="change"
-      hx-target="#restaurant-table"
+      hx-target="#restaurant-content"
       hx-push-url="true"
       class="mb-5">
   <input type="hidden" name="sort" id="sort-input" value="{{ current_sort_param }}">
+  {% if view_mode == "map" %}<input type="hidden" name="view" id="view-input" value="map">{% endif %}
   <div class="columns is-multiline is-mobile">
     <div class="column is-half-mobile is-one-quarter-tablet">
       <div class="field">
@@ -75,7 +83,26 @@
   </div>
 </form>
 
-<div id="restaurant-table">
-  {% include "restaurants/_restaurant_table.html" %}
+{% if city.has_bbox %}
+<div class="tabs is-boxed mb-4">
+  <ul>
+    <li class="{% if view_mode != 'map' %}is-active{% endif %}">
+      <a hx-get="{% url 'restaurant_list' city_slug=city.slug %}?{{ filter_query }}"
+         hx-target="#restaurant-content" hx-push-url="true">List</a>
+    </li>
+    <li class="{% if view_mode == 'map' %}is-active{% endif %}">
+      <a hx-get="{% url 'restaurant_list' city_slug=city.slug %}?{{ filter_query }}&view=map"
+         hx-target="#restaurant-content" hx-push-url="true">Map</a>
+    </li>
+  </ul>
+</div>
+{% endif %}
+
+<div id="restaurant-content">
+  {% if view_mode == "map" %}
+    {% include "restaurants/_restaurant_map.html" %}
+  {% else %}
+    {% include "restaurants/_restaurant_table.html" %}
+  {% endif %}
 </div>
 {% endblock %}

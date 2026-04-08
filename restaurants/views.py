@@ -1,3 +1,4 @@
+import json
 from urllib.parse import urlencode
 
 from django.db import models
@@ -121,7 +122,25 @@ def restaurant_list(request, city_slug):
     base_url = reverse("restaurant_list", kwargs={"city_slug": city.slug})
     sort_headers = _build_sort_headers(current_sort, filter_params, base_url)
 
+    view_mode = request.GET.get("view", "list")
     is_htmx = request.headers.get("HX-Request") == "true"
+
+    # Filter query string for tab links (filters only, no sort/view)
+    filter_query = urlencode(filter_params)
+
+    # Serialize restaurant coordinates for the map
+    restaurants_json = json.dumps([
+        {
+            "id": r.pk,
+            "name": r.name,
+            "cuisine": r.cuisine,
+            "latitude": float(r.latitude),
+            "longitude": float(r.longitude),
+            "url": reverse("restaurant_detail", kwargs={"city_slug": city.slug, "pk": r.pk}),
+        }
+        for r in restaurants
+        if r.latitude and r.longitude
+    ])
 
     context = {
         "city": city,
@@ -138,10 +157,14 @@ def restaurant_list(request, city_slug):
         "sort_headers": sort_headers,
         "current_sort_param": _sort_to_param(current_sort),
         "is_htmx": is_htmx,
+        "view_mode": view_mode,
+        "filter_query": filter_query,
+        "restaurants_json": restaurants_json,
     }
 
     if is_htmx:
-        return render(request, "restaurants/_restaurant_table.html", context)
+        template = "restaurants/_restaurant_map.html" if view_mode == "map" else "restaurants/_restaurant_table.html"
+        return render(request, template, context)
     return render(request, "restaurants/restaurant_list.html", context)
 
 

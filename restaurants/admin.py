@@ -1,4 +1,6 @@
 import logging
+import subprocess
+import sys
 
 from adminsortable2.admin import SortableAdminBase, SortableTabularInline
 from django.conf import settings
@@ -88,3 +90,30 @@ class TagAdmin(admin.ModelAdmin):
 class CityAdmin(admin.ModelAdmin):
     list_display = ["name", "slug"]
     prepopulated_fields = {"slug": ("name",)}
+    fieldsets = [
+        (None, {"fields": ["name", "slug"]}),
+        ("Map bounding box", {
+            "fields": ["bbox_min_lon", "bbox_min_lat", "bbox_max_lon", "bbox_max_lat"],
+            "description": (
+                'Look up values at <a href="http://bboxfinder.com" target="_blank">bboxfinder.com</a>. '
+                "Leave blank to disable the map tab for this city."
+            ),
+        }),
+    ]
+    actions = ["fetch_tiles"]
+
+    @admin.action(description="Fetch map tiles")
+    def fetch_tiles(self, request, queryset):
+        cities = [c for c in queryset if c.has_bbox]
+        if not cities:
+            self.message_user(request, "No selected cities have a bounding box set.", level="warning")
+            return
+        for city in cities:
+            # Run in background so a browser disconnect won't kill it
+            subprocess.Popen(
+                [sys.executable, "manage.py", "fetch_tiles", "--city", city.slug],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        names = ", ".join(c.name for c in cities)
+        self.message_user(request, f"Tile fetch started in the background for: {names}")

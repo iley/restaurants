@@ -7,6 +7,7 @@ data_dir: /opt/restaurants
 db_path: /opt/restaurants/db.sqlite3
 media_dir: /opt/restaurants/media
 static_dir: /opt/restaurants/static
+tiles_dir: /opt/restaurants/tiles
 
 domain: restaurants.istrukov.com
 

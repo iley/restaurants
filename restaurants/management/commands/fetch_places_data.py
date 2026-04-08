@@ -47,6 +47,8 @@ class Command(BaseCommand):
                 | Q(google_maps_url="")
                 | Q(google_place_id="")
                 | Q(google_rating__isnull=True)
+                | Q(latitude__isnull=True)
+                | Q(longitude__isnull=True)
             )
 
         restaurants = list(qs)

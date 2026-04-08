@@ -13,6 +13,7 @@ ExecStart=/usr/bin/docker run --rm \
     -v {{ db_path }}:/app/data/db.sqlite3 \
     -v {{ media_dir }}:/app/data/media \
     -v {{ static_dir }}:/app/data/static \
+    -v {{ tiles_dir }}:/app/data/tiles \
     -e DJANGO_SECRET_KEY={{ django_secret_key }} \
     -e DJANGO_DEBUG={{ django_debug }} \
     -e DJANGO_ALLOWED_HOSTS={{ django_allowed_hosts }} \
@@ -21,6 +22,7 @@ ExecStart=/usr/bin/docker run --rm \
     -e DATABASE_PATH=/app/data/db.sqlite3 \
     -e MEDIA_ROOT=/app/data/media \
     -e STATIC_ROOT=/app/data/static \
+    -e TILES_DIR=/app/data/tiles \
     {{ app_image }}
 ExecStop=/usr/bin/docker stop {{ app_container_name }}
 Restart=always

@@ -1,0 +1,55 @@
+{% load static %}
+
+<div id="map" style="height: 70vh; width: 100%; border-radius: 6px;"></div>
+
+<script src="{% static 'restaurants/map/pmtiles.js' %}"></script>
+<script src="{% static 'restaurants/map/maplibre-gl.js' %}"></script>
+<script src="{% static 'restaurants/map/basemaps.js' %}"></script>
+<script>
+(function() {
+    const protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol("pmtiles", protocol.tile);
+
+    const citySlug = "{{ city.slug }}";
+    const bbox = [
+        [{{ city.bbox_min_lon }}, {{ city.bbox_min_lat }}],
+        [{{ city.bbox_max_lon }}, {{ city.bbox_max_lat }}]
+    ];
+    const restaurants = {{ restaurants_json|safe }};
+
+    const map = new maplibregl.Map({
+        container: "map",
+        style: {
+            version: 8,
+            glyphs: "{% static 'restaurants/map/fonts' %}/{fontstack}/{range}.pbf",
+            sprite: location.origin + "{% static 'restaurants/map/sprites/v4/light' %}",
+            sources: {
+                protomaps: {
+                    type: "vector",
+                    url: "pmtiles:///tiles/" + citySlug + ".pmtiles",
+                    attribution: "&copy; <a href='https://openstreetmap.org'>OpenStreetMap</a>"
+                }
+            },
+            layers: basemaps.layers("protomaps", basemaps.namedFlavor("light"), {lang: "en"})
+        },
+        bounds: bbox,
+        fitBoundsOptions: {padding: 40}
+    });
+
+    restaurants.forEach(function(r) {
+        const popup = new maplibregl.Popup({offset: 25}).setHTML(
+            "<strong><a href=\"" + r.url + "\">" + r.name + "</a></strong>" +
+            "<br>" + r.cuisine
+        );
+        new maplibregl.Marker()
+            .setLngLat([r.longitude, r.latitude])
+            .setPopup(popup)
+            .addTo(map);
+    });
+})();
+</script>
+
+{% if is_htmx %}
+<input type="hidden" name="sort" id="sort-input" value="{{ current_sort_param }}" hx-swap-oob="true">
+<input type="hidden" name="view" id="view-input" value="map" hx-swap-oob="true">
+{% endif %}

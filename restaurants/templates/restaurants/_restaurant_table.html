@@ -6,7 +6,7 @@
         {% for col in sort_headers %}
         <th>
           <a href="{{ col.url }}" hx-get="{{ col.url }}"
-             hx-target="#restaurant-table" hx-push-url="true" class="sort-header">
+             hx-target="#restaurant-content" hx-push-url="true" class="sort-header">
             {{ col.label }}{% if col.is_primary %} {% if col.direction == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
           </a>
         </th>
@@ -37,4 +37,5 @@
 
 {% if is_htmx %}
 <input type="hidden" name="sort" id="sort-input" value="{{ current_sort_param }}" hx-swap-oob="true">
+<input type="hidden" name="view" id="view-input" value="" hx-swap-oob="true">
 {% endif %}

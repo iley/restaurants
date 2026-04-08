@@ -14,12 +14,26 @@ class City(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
 
+    # Bounding box for map tile extraction and initial viewport.
+    # A city without a bbox simply won't have a map tab.
+    bbox_min_lon = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    bbox_min_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    bbox_max_lon = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    bbox_max_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
     class Meta:
         ordering = ["name"]
         verbose_name_plural = "cities"
 
     def __str__(self):
         return self.name
+
+    @property
+    def has_bbox(self):
+        return all(v is not None for v in [
+            self.bbox_min_lon, self.bbox_min_lat,
+            self.bbox_max_lon, self.bbox_max_lat,
+        ])
 
 
 class Tag(models.Model):
@@ -96,6 +110,9 @@ class Restaurant(models.Model):
     google_rating = models.DecimalField(
         max_digits=2, decimal_places=1, null=True, blank=True,
     )
+
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     hidden = models.BooleanField(default=False, help_text="Hide from the public list")
     closed = models.BooleanField(

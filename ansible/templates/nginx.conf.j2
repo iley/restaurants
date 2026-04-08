@@ -16,6 +16,13 @@ server {
         add_header Cache-Control "public";
     }
 
+    location /tiles/ {
+        alias {{ tiles_dir }}/;
+        add_header Access-Control-Allow-Origin *;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
     location / {
         proxy_pass http://127.0.0.1:{{ app_port }};
         proxy_set_header Host $host;
