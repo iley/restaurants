@@ -12,7 +12,7 @@ COPY . .
 RUN uv sync --frozen --no-dev
 
 # Download pmtiles CLI for tile extraction
-ADD https://github.com/protomaps/go-pmtiles/releases/download/v1.22.5/go-pmtiles_1.22.5_Linux_x86_64.tar.gz /tmp/pmtiles.tar.gz
+ADD https://github.com/protomaps/go-pmtiles/releases/download/v1.30.1/go-pmtiles_1.30.1_Linux_arm64.tar.gz /tmp/pmtiles.tar.gz
 RUN tar -xzf /tmp/pmtiles.tar.gz -C /tmp && mv /tmp/pmtiles /usr/local/bin/pmtiles && rm /tmp/pmtiles.tar.gz
 
 
