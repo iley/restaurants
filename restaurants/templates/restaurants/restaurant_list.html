@@ -6,6 +6,9 @@
 {% block extra_head %}
 {% if city.has_bbox %}
 <link rel="stylesheet" href="{% static 'restaurants/map/maplibre-gl.css' %}">
+<script src="{% static 'restaurants/map/pmtiles.js' %}"></script>
+<script src="{% static 'restaurants/map/maplibre-gl.js' %}"></script>
+<script src="{% static 'restaurants/map/basemaps.js' %}"></script>
 {% endif %}
 {% endblock %}
 
