@@ -33,12 +33,19 @@
         fitBoundsOptions: {padding: 40}
     });
 
+    function markerColor(rating) {
+        if (rating >= 9) return "#2d9e2d";      // green — highly recommend
+        if (rating >= 7) return "#7bc67b";      // light green — recommend
+        if (rating >= 5) return "#e6c619";      // yellow — it's OK
+        return "#999999";                        // grey — don't recommend
+    }
+
     restaurants.forEach(function(r) {
         const popup = new maplibregl.Popup({offset: 25}).setHTML(
             "<strong><a href=\"" + r.url + "\">" + r.name + "</a></strong>" +
             "<br>" + r.cuisine
         );
-        new maplibregl.Marker()
+        new maplibregl.Marker({color: markerColor(r.rating)})
             .setLngLat([r.longitude, r.latitude])
             .setPopup(popup)
             .addTo(map);

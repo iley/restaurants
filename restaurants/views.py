@@ -139,6 +139,7 @@ def restaurant_list(request, city_slug):
             "cuisine": r.cuisine,
             "latitude": float(r.latitude),
             "longitude": float(r.longitude),
+            "rating": r.rating,
             "url": reverse("restaurant_detail", kwargs={"city_slug": city.slug, "pk": r.pk}),
         }
         for r in restaurants
