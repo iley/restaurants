@@ -8,13 +8,17 @@ SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 FIELD_MASK = "places.id,places.formattedAddress,places.websiteUri,places.googleMapsUri,places.rating,places.location"
 
 
-def search_place(name: str, city: str, api_key: str) -> dict | None:
+def search_place(name: str, city: str, api_key: str, location: str = "") -> dict | None:
     """Search Google Places for a restaurant and return its details.
 
     Returns a dict with keys: place_id, address, website, google_maps_url.
     Returns None if no result is found or the request fails.
     """
-    query = f"{name}, {city}"
+    parts = [name]
+    if location:
+        parts.append(location)
+    parts.append(city)
+    query = ", ".join(parts)
     try:
         resp = requests.post(
             SEARCH_URL,

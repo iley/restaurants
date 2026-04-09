@@ -62,7 +62,7 @@ class Command(BaseCommand):
         for i, restaurant in enumerate(restaurants, 1):
             prefix = f"[{i}/{total}] {restaurant.name}"
 
-            data = search_place(restaurant.name, restaurant.city.name, api_key)
+            data = search_place(restaurant.name, restaurant.city.name, api_key, restaurant.location)
             if data is None:
                 self.stdout.write(self.style.WARNING(f"{prefix} — not found"))
                 not_found += 1

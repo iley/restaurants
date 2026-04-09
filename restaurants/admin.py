@@ -37,7 +37,7 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
         api_key = settings.GOOGLE_PLACES_API_KEY
         if not api_key or obj.address:
             return
-        data = search_place(obj.name, obj.city.name, api_key)
+        data = search_place(obj.name, obj.city.name, api_key, obj.location)
         if data:
             fields = apply_place_data(obj, data)
             if fields:
@@ -63,7 +63,7 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
 
         updated = not_found = skipped = 0
         for restaurant in queryset.select_related("city"):
-            data = search_place(restaurant.name, restaurant.city.name, api_key)
+            data = search_place(restaurant.name, restaurant.city.name, api_key, restaurant.location)
             if data is None:
                 not_found += 1
                 continue
