@@ -125,12 +125,6 @@ def restaurant_list(request, city_slug):
     view_mode = request.GET.get("view", "list")
     is_htmx = request.headers.get("HX-Request") == "true"
 
-    # Query string for tab links (filters + sort, no view)
-    tab_params = {**filter_params}
-    if sort_param != DEFAULT_SORT:
-        tab_params["sort"] = sort_param
-    filter_query = urlencode(tab_params)
-
     # Serialize restaurant coordinates for the map
     restaurants_json = json.dumps([
         {
@@ -162,7 +156,6 @@ def restaurant_list(request, city_slug):
         "current_sort_param": _sort_to_param(current_sort),
         "is_htmx": is_htmx,
         "view_mode": view_mode,
-        "filter_query": filter_query,
         "restaurants_json": restaurants_json,
     }
 
