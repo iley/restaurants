@@ -1,5 +1,5 @@
 import subprocess
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -18,13 +18,18 @@ class Command(BaseCommand):
             "--city",
             help="Only process this city (slug)",
         )
+        parser.add_argument(
+            "--date",
+            help="Protomaps build date (YYYYMMDD). Default: yesterday's build.",
+        )
 
     def handle(self, **options):
         tiles_dir = Path(settings.TILES_DIR)
         tiles_dir.mkdir(parents=True, exist_ok=True)
 
-        # Use today's Protomaps daily build
-        planet_url = f"https://build.protomaps.com/{date.today():%Y%m%d}.pmtiles"
+        # Use yesterday's build by default (today's may not exist yet)
+        build_date = options["date"] or f"{date.today() - timedelta(days=1):%Y%m%d}"
+        planet_url = f"https://build.protomaps.com/{build_date}.pmtiles"
 
         cities = City.objects.all()
         if options["city"]:
