@@ -128,20 +128,21 @@
         state: present
 
     - name: Check if restic is installed
-      stat:
-        path: /usr/local/bin/restic
-      register: restic_bin
+      command: /usr/local/bin/restic version
+      register: restic_check
+      changed_when: false
+      failed_when: false
 
     - name: Download restic binary
       get_url:
         url: https://github.com/restic/restic/releases/download/v0.17.3/restic_0.17.3_linux_arm64.bz2
         dest: /tmp/restic.bz2
         mode: "0644"
-      when: not restic_bin.stat.exists
+      when: restic_check.rc != 0
 
     - name: Extract restic binary
       shell: bunzip2 -c /tmp/restic.bz2 > /usr/local/bin/restic && chmod 0755 /usr/local/bin/restic
-      when: not restic_bin.stat.exists
+      when: restic_check.rc != 0
 
     - name: Deploy backup script
       template:
