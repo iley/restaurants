@@ -120,9 +120,11 @@
 
     # --- Backups ---
 
-    - name: Install sqlite
+    - name: Install sqlite and bzip2
       dnf:
-        name: sqlite
+        name:
+          - sqlite
+          - bzip2
         state: present
 
     - name: Check if restic is installed
