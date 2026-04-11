@@ -16,3 +16,8 @@ django_debug: "False"
 django_allowed_hosts: "restaurants.istrukov.com"
 csrf_trusted_origins: "https://restaurants.istrukov.com"
 # django_secret_key and google_places_api_key: set in ansible/secrets.yml
+
+# Backups
+backup_bucket: restaurants-app-backups
+backup_s3_region: eu-west-1
+db_backup_path: /opt/restaurants/db-backup.sqlite3

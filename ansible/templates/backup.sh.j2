@@ -1,0 +1,22 @@
+#!/bin/bash
+set -euo pipefail
+
+export AWS_ACCESS_KEY_ID="{{ backup_aws_access_key_id }}"
+export AWS_SECRET_ACCESS_KEY="{{ backup_aws_secret_access_key }}"
+export RESTIC_REPOSITORY="s3:s3.{{ backup_s3_region }}.amazonaws.com/{{ backup_bucket }}"
+export RESTIC_PASSWORD="{{ restic_password }}"
+
+# Safe SQLite hot copy
+sqlite3 "{{ db_path }}" ".backup {{ db_backup_path }}"
+
+# Run backup (exclude the live DB to avoid inconsistent snapshots, back up the safe copy instead)
+restic backup \
+  --exclude "{{ db_path }}" \
+  --exclude "{{ static_dir }}" \
+  "{{ data_dir }}"
+
+# Prune old snapshots
+restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 3 --prune
+
+# Clean up
+rm -f "{{ db_backup_path }}"

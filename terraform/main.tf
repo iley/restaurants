@@ -97,6 +97,10 @@ resource "aws_instance" "restaurants" {
   tags = {
     Name = "restaurants"
   }
+
+  lifecycle {
+    ignore_changes = [ami]
+  }
 }
 
 resource "aws_volume_attachment" "data" {
@@ -112,4 +116,55 @@ resource "aws_eip" "restaurants" {
   tags = {
     Name = "restaurants-eip"
   }
+}
+
+# --- Backups ---
+
+resource "aws_s3_bucket" "backups" {
+  bucket = var.backup_bucket_name
+
+  tags = {
+    Name = "restaurants-backups"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "backups" {
+  bucket = aws_s3_bucket.backups.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_iam_user" "backup" {
+  name = "restaurants-backup"
+}
+
+resource "aws_iam_access_key" "backup" {
+  user = aws_iam_user.backup.name
+}
+
+resource "aws_iam_user_policy" "backup" {
+  name = "restaurants-backup-s3"
+  user = aws_iam_user.backup.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket",
+        ]
+        Resource = [
+          aws_s3_bucket.backups.arn,
+          "${aws_s3_bucket.backups.arn}/*",
+        ]
+      }
+    ]
+  })
 }
