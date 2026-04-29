@@ -43,6 +43,19 @@ _RATING_TIER_RANK = Case(
 _TEXT_FIELDS = {"name", "cuisine", "venue_category"}
 
 
+def _michelin_filter_choices():
+    """Dropdown choices: each tier means "this level or higher" (e.g. "1 Star +")."""
+    tiers = [
+        (value, label) for value, label in Restaurant.MichelinStatus.choices
+        if value != Restaurant.MichelinStatus.NONE
+    ]
+    last = len(tiers) - 1
+    return [
+        (value, label if i == last else f"{label} +")
+        for i, (value, label) in enumerate(tiers)
+    ]
+
+
 def index(request):
     return redirect("restaurant_list", city_slug=DEFAULT_CITY_SLUG)
 
@@ -82,7 +95,10 @@ def restaurant_list(request, city_slug):
     if venue_category:
         restaurants = restaurants.filter(venue_category=venue_category)
     if michelin_status:
-        restaurants = restaurants.filter(michelin_status=michelin_status)
+        # "Tier or higher": include the selected status and every more prestigious one.
+        ranks = [v for v, _ in Restaurant.MichelinStatus.choices]
+        if michelin_status in ranks:
+            restaurants = restaurants.filter(michelin_status__in=ranks[ranks.index(michelin_status):])
     if rating_tier and rating_tier in Restaurant.RATING_TIERS:
         lo, hi = Restaurant.RATING_TIERS[rating_tier]["range"]
         restaurants = restaurants.filter(rating__gte=lo, rating__lte=hi)
@@ -146,10 +162,7 @@ def restaurant_list(request, city_slug):
         "cities": City.objects.all(),
         "cuisines": cuisines,
         "venue_categories": Restaurant.VenueCategory.choices,
-        "michelin_statuses": [
-            (value, "No designation" if value == Restaurant.MichelinStatus.NONE else label)
-            for value, label in Restaurant.MichelinStatus.choices
-        ],
+        "michelin_statuses": _michelin_filter_choices(),
         "rating_tiers": rating_tier_choices,
         "filters": filters,
         "sort_headers": sort_headers,
