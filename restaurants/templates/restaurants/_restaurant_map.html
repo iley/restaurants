@@ -34,6 +34,7 @@
     });
 
     function markerColor(rating) {
+        if (rating == null) return "#3273dc";   // blue — wishlist (not visited)
         if (rating >= 9) return "#2d9e2d";      // green — highly recommend
         if (rating >= 7) return "#7bc67b";      // light green — recommend
         if (rating >= 5) return "#e6c619";      // yellow — it's OK

@@ -22,10 +22,25 @@ class PhotoInline(SortableTabularInline):
     extra = 0
 
 
+class WishlistFilter(admin.SimpleListFilter):
+    title = "wishlist"
+    parameter_name = "wishlist"
+
+    def lookups(self, request, model_admin):
+        return [("yes", "Wishlist (no rating)"), ("no", "Visited (has rating)")]
+
+    def queryset(self, request, queryset):
+        if self.value() == "yes":
+            return queryset.filter(rating__isnull=True)
+        if self.value() == "no":
+            return queryset.filter(rating__isnull=False)
+        return queryset
+
+
 @admin.register(Restaurant)
 class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
     list_display = ["name", "city", "cuisine", "venue_category", "michelin_status", "rating", "hidden", "closed"]
-    list_filter = ["city", "venue_category", "michelin_status", "hidden", "closed"]
+    list_filter = ["city", "venue_category", "michelin_status", WishlistFilter, "hidden", "closed"]
     list_editable = ["hidden", "closed"]
     search_fields = ["name", "cuisine", "location", "comments"]
     filter_horizontal = ["tags"]

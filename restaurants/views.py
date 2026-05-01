@@ -90,6 +90,24 @@ def restaurant_list(request, city_slug):
     michelin_status = request.GET.get("michelin_status", "")
     rating_tier = request.GET.get("rating_tier", "")
 
+    # Visibility checkboxes: visited (rating set) vs wishlist (rating null).
+    # On a fresh page load (no `vis` marker), show visited only. Once the
+    # filter form has been submitted, `vis=1` is present and the checkbox
+    # states become authoritative — including "neither checked".
+    if request.GET.get("vis"):
+        show_visited = request.GET.get("show_visited") == "1"
+        show_wishlist = request.GET.get("show_wishlist") == "1"
+    else:
+        show_visited = True
+        show_wishlist = False
+
+    if show_visited and not show_wishlist:
+        restaurants = restaurants.filter(rating__isnull=False)
+    elif show_wishlist and not show_visited:
+        restaurants = restaurants.filter(rating__isnull=True)
+    elif not show_visited and not show_wishlist:
+        restaurants = restaurants.none()
+
     if cuisine:
         restaurants = restaurants.filter(cuisine=cuisine)
     if venue_category:
@@ -133,15 +151,22 @@ def restaurant_list(request, city_slug):
         "rating_tier": rating_tier,
     }
 
-    # Build sort header links (preserve current filters in each link)
+    # Build sort header links (preserve current filters in each link).
+    # Include visibility state so sorting doesn't reset the visited/wishlist toggle.
     filter_params = {k: v for k, v in filters.items() if v}
+    filter_params["vis"] = "1"
+    if show_visited:
+        filter_params["show_visited"] = "1"
+    if show_wishlist:
+        filter_params["show_wishlist"] = "1"
     base_url = reverse("restaurant_list", kwargs={"city_slug": city.slug})
     sort_headers = _build_sort_headers(current_sort, filter_params, base_url)
 
     view_mode = request.GET.get("view", "list")
     is_htmx = request.headers.get("HX-Request") == "true"
 
-    # Serialize restaurant coordinates for the map
+    # Serialize restaurant coordinates for the map.
+    # `rating` is null for wishlist entries; the map renders those with a distinct color.
     restaurants_json = json.dumps([
         {
             "id": r.pk,
@@ -165,6 +190,8 @@ def restaurant_list(request, city_slug):
         "michelin_statuses": _michelin_filter_choices(),
         "rating_tiers": rating_tier_choices,
         "filters": filters,
+        "show_visited": show_visited,
+        "show_wishlist": show_wishlist,
         "sort_headers": sort_headers,
         "current_sort_param": _sort_to_param(current_sort),
         "is_htmx": is_htmx,

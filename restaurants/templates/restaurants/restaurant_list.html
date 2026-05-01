@@ -13,7 +13,7 @@
 {% endblock %}
 
 {% block content %}
-<p class="mb-5">Here's a list of restaurants I visited so far in {{ city.name }}. All ratings are my personal opinion.</p>
+<p class="mb-5">Here's a list of restaurants I visited or want to visit in {{ city.name }}. All ratings are my personal opinion.</p>
 
 <form id="filter-form"
       hx-get="{% url 'restaurant_list' city_slug=city.slug %}"
@@ -24,6 +24,18 @@
       class="mb-5">
   <input type="hidden" name="sort" id="sort-input" value="{{ current_sort_param }}">
   <input type="hidden" name="view" id="view-input" value="{% if view_mode == 'map' %}map{% endif %}">
+  {# `vis=1` marks the form as submitted so unchecked-both becomes distinguishable from a fresh page load. #}
+  <input type="hidden" name="vis" value="1">
+  <div class="field is-grouped mb-3">
+    <label class="checkbox mr-4">
+      <input type="checkbox" name="show_visited" value="1" {% if show_visited %}checked{% endif %}>
+      Visited
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" name="show_wishlist" value="1" {% if show_wishlist %}checked{% endif %}>
+      Wishlist
+    </label>
+  </div>
   <div class="columns is-multiline is-mobile">
     <div class="column is-half-mobile is-one-quarter-tablet">
       <div class="field">

@@ -96,9 +96,12 @@ class Restaurant(models.Model):
         choices=MichelinStatus.choices,
         default=MichelinStatus.NONE,
     )
+    # Null rating means the restaurant is on the wishlist (not visited yet).
     rating = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(10)],
-        help_text="Internal rating 1-10",
+        help_text="Internal rating 1-10. Leave blank for wishlist (not visited yet).",
     )
     comments = models.TextField(blank=True, help_text="Markdown supported")
 
@@ -130,11 +133,17 @@ class Restaurant(models.Model):
 
     @property
     def rating_tier(self):
+        if self.rating is None:
+            return ""
         for tier in self.RATING_TIERS.values():
             lo, hi = tier["range"]
             if lo <= self.rating <= hi:
                 return tier["label"]
         return ""
+
+    @property
+    def is_wishlist(self):
+        return self.rating is None
 
 
 class Visit(models.Model):

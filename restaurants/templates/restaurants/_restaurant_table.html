@@ -17,8 +17,8 @@
     <tbody>
       {% for r in restaurants %}
       <tr>
-        <td><a href="{% url 'restaurant_detail' city_slug=city.slug pk=r.pk %}">{{ r.name }}</a>{% if r.closed %} <span class="tag is-dark is-small">Closed</span>{% endif %}</td>
-        <td>{{ r.rating_tier }}</td>
+        <td><a href="{% url 'restaurant_detail' city_slug=city.slug pk=r.pk %}">{{ r.name }}</a>{% if r.is_wishlist %} <span class="tag is-info is-small is-light">Wishlist</span>{% endif %}{% if r.closed %} <span class="tag is-dark is-small">Closed</span>{% endif %}</td>
+        <td>{% if r.is_wishlist %}<span class="has-text-grey">TODO</span>{% else %}{{ r.rating_tier }}{% endif %}</td>
         <td>{{ r.cuisine }}</td>
         <td>{{ r.get_venue_category_display }}</td>
         <td>{% if r.michelin_status != "none" %}{% include "restaurants/_michelin_icon.html" with michelin_status=r.michelin_status michelin_display=r.get_michelin_status_display %}{% endif %}</td>
@@ -29,7 +29,7 @@
   </table>
 </div>
 <p class="has-text-grey is-size-7 mt-2">{{ restaurants|length }} restaurant{{ restaurants|length|pluralize }} shown</p>
-{% elif filters.cuisine or filters.venue_category or filters.rating_tier or filters.michelin_status %}
+{% elif filters.cuisine or filters.venue_category or filters.rating_tier or filters.michelin_status or show_wishlist or not show_visited %}
 <p class="has-text-grey">No restaurants match the selected filters.</p>
 {% else %}
 <p class="has-text-grey">No restaurants yet for {{ city.name }}.</p>

@@ -12,7 +12,7 @@
 </nav>
 
 <div class="is-flex is-align-items-baseline is-justify-content-space-between">
-  <h1 class="title">{{ restaurant.name }}{% if restaurant.closed %} <span class="tag is-dark">Closed</span>{% endif %}</h1>
+  <h1 class="title">{{ restaurant.name }}{% if restaurant.is_wishlist %} <span class="tag is-info is-light">Wishlist</span>{% endif %}{% if restaurant.closed %} <span class="tag is-dark">Closed</span>{% endif %}</h1>
   {% if user.is_staff %}
   <a href="{% url 'admin:restaurants_restaurant_change' restaurant.pk %}" class="has-text-grey is-size-7">Edit</a>
   {% endif %}
@@ -26,7 +26,9 @@
       {% if restaurant.location %}
       <tr><th>Location</th><td>{{ restaurant.location }}</td></tr>
       {% endif %}
+      {% if not restaurant.is_wishlist %}
       <tr><th>My Rating</th><td>{{ restaurant.rating_tier }}</td></tr>
+      {% endif %}
       {% if restaurant.michelin_status != "none" %}
       <tr><th>Michelin</th><td>{% include "restaurants/_michelin_icon.html" with michelin_status=restaurant.michelin_status michelin_display=restaurant.get_michelin_status_display %} {{ restaurant.get_michelin_status_display }}</td></tr>
       {% endif %}
