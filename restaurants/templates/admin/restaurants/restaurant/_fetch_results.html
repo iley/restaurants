@@ -32,13 +32,22 @@
     {% endfor %}
     </tbody>
   </table>
+  <style>
+    .fetch-results-table tr.applied { opacity: 0.45; }
+    .fetch-results-table tr.applied .fetch-proposed { text-decoration: line-through; }
+  </style>
   <script>
   (function() {
     var panel = document.getElementById('fetch-results');
     if (!panel) return;
     function apply(btn) {
+      if (btn.disabled) return;
       var input = document.getElementById(btn.dataset.target);
       if (input) input.value = btn.dataset.value;
+      var row = btn.closest('tr');
+      if (row) row.classList.add('applied');
+      btn.disabled = true;
+      btn.textContent = 'Applied';
     }
     panel.querySelectorAll('button.fetch-apply-one').forEach(function(btn) {
       btn.addEventListener('click', function() { apply(btn); });
@@ -47,6 +56,8 @@
     if (all) {
       all.addEventListener('click', function() {
         panel.querySelectorAll('button.fetch-apply-one').forEach(apply);
+        all.disabled = true;
+        all.textContent = 'Applied — remember to Save';
       });
     }
   })();

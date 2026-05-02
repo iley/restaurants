@@ -64,6 +64,16 @@ def _to_decimal(value):
     return Decimal(str(value))
 
 
+def _to_coord(value):
+    # Quantize to the latitude/longitude column precision (decimal_places=6).
+    # Without this, fresh fetches carry extra precision that both shows a
+    # spurious diff against the stored 6-place value and exceeds max_digits=9
+    # on save.
+    if value is None:
+        return None
+    return Decimal(str(value)).quantize(Decimal("0.000001"))
+
+
 def google_places_source(probe) -> dict | None:
     """Adapter that exposes Google Places to the sources registry.
 
@@ -82,8 +92,8 @@ def google_places_source(probe) -> dict | None:
         "website": data.get("website", ""),
         "google_maps_url": data.get("google_maps_url", ""),
         "google_rating": _to_decimal(data.get("google_rating")),
-        "latitude": _to_decimal(data.get("latitude")),
-        "longitude": _to_decimal(data.get("longitude")),
+        "latitude": _to_coord(data.get("latitude")),
+        "longitude": _to_coord(data.get("longitude")),
     }
 
 
