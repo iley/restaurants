@@ -25,23 +25,8 @@
 {% endblock %}
 
 {% block form_top %}{{ block.super }}
+<div id="duplicate-warning"></div>
 <div id="fetch-results" class="fetch-results-panel"></div>
-<script>
-(function() {
-    var form = document.getElementById('{{ opts.model_name }}_form');
-    if (!form) return;
-    form.addEventListener('submit', function(e) {
-        var panel = document.getElementById('fetch-results');
-        if (!panel) return;
-        var pending = panel.querySelectorAll('button.fetch-apply-one:not(:disabled)').length;
-        if (pending === 0) return;
-        var msg = pending === 1
-            ? 'There is 1 un-applied fetched change. Save anyway?'
-            : 'There are ' + pending + ' un-applied fetched changes. Save anyway?';
-        if (!confirm(msg)) e.preventDefault();
-    });
-})();
-</script>
 {% endblock %}
 
 {% block extrastyle %}{{ block.super }}
@@ -82,6 +67,22 @@
     border-radius: 4px;
     border: 1px solid #ddd;
 }
+.duplicate-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #664d03;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+.duplicate-warning ul {
+    margin: 6px 0 0 18px;
+    padding: 0;
+}
+.duplicate-warning a {
+    color: #664d03;
+    text-decoration: underline;
+}
 </style>
 {% endblock %}
 
@@ -89,6 +90,75 @@
 {{ block.super }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    (function() {
+        const form = document.getElementById('{{ opts.model_name }}_form');
+        const nameInput = document.getElementById('id_name');
+        const cityInput = document.getElementById('id_city');
+        const panel = document.getElementById('duplicate-warning');
+        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (!form || !nameInput || !cityInput || !panel || !csrfInput) return;
+        const url = "{% url 'admin:restaurants_restaurant_check_duplicate' %}";
+        const pk = "{{ original.pk|default:'' }}";
+
+        // Re-check on submit (not just on blur) so a duplicate name typed and
+        // immediately saved -- without ever blurring the field -- still
+        // triggers the warning.
+        async function checkDuplicates() {
+            const name = nameInput.value.trim();
+            const city = cityInput.value.trim();
+            if (!name || !city) {
+                panel.innerHTML = '';
+                return false;
+            }
+            const body = new FormData();
+            body.append('name', name);
+            body.append('city', city);
+            body.append('pk', pk);
+            body.append('csrfmiddlewaretoken', csrfInput.value);
+            const resp = await fetch(url, {method: 'POST', body, credentials: 'same-origin'});
+            panel.innerHTML = await resp.text();
+            return !!panel.querySelector('.duplicate-warning');
+        }
+
+        nameInput.addEventListener('blur', checkDuplicates);
+        cityInput.addEventListener('change', checkDuplicates);
+        if (nameInput.value.trim()) checkDuplicates();
+
+        let bypass = false;
+        form.addEventListener('submit', async function(e) {
+            // Existing fetch-results check (synchronous; re-confirm if there
+            // are un-applied fetched proposals in the panel).
+            const fetchPanel = document.getElementById('fetch-results');
+            if (!bypass && fetchPanel) {
+                const pending = fetchPanel.querySelectorAll('button.fetch-apply-one:not(:disabled)').length;
+                if (pending > 0) {
+                    const msg = pending === 1
+                        ? 'There is 1 un-applied fetched change. Save anyway?'
+                        : 'There are ' + pending + ' un-applied fetched changes. Save anyway?';
+                    if (!confirm(msg)) { e.preventDefault(); return; }
+                }
+            }
+            if (bypass) return;
+            e.preventDefault();
+            const hasDup = await checkDuplicates();
+            if (hasDup && !confirm('A restaurant with the same name already exists in this city. Save anyway?')) {
+                return;
+            }
+            bypass = true;
+            // form.submit() bypasses the submit handler but also drops the
+            // submitter's name/value; preserve it so "Save and continue" /
+            // "Save and add another" still work.
+            if (e.submitter && e.submitter.name) {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = e.submitter.name;
+                hidden.value = e.submitter.value || '';
+                form.appendChild(hidden);
+            }
+            form.submit();
+        });
+    })();
+
     const photosGroup = document.getElementById('photos-group');
     if (!photosGroup) return;
 

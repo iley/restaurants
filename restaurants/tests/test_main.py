@@ -619,6 +619,92 @@ class FetchAttributesViewTests(TestCase):
         self.assertEqual(resp.status_code, 403)
 
 
+class CheckDuplicateViewTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+        cls.other_city = City.objects.create(name="Cork", slug="cork")
+        cls.existing = Restaurant.objects.create(
+            city=cls.city, name="Chapter One", cuisine="Modern Irish",
+            location="North City",
+        )
+        User = get_user_model()
+        cls.staff = User.objects.create_user(
+            username="staff", password="pw", is_staff=True,
+        )
+        cls.url = reverse("admin:restaurants_restaurant_check_duplicate")
+
+    def setUp(self):
+        self.client.force_login(self.staff)
+
+    def test_anonymous_user_redirected(self):
+        anon = Client()
+        resp = anon.post(self.url, {"name": "X", "city": str(self.city.pk)})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_get_returns_405(self):
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 405)
+
+    def test_blank_inputs_render_empty(self):
+        resp = self.client.post(self.url, {"name": "", "city": str(self.city.pk)})
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, "duplicate-warning")
+
+    def test_exact_match_renders_warning(self):
+        resp = self.client.post(self.url, {
+            "name": "Chapter One", "city": str(self.city.pk),
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Chapter One")
+        self.assertContains(resp, "duplicate-warning")
+
+    def test_match_is_case_insensitive(self):
+        resp = self.client.post(self.url, {
+            "name": "chapter ONE", "city": str(self.city.pk),
+        })
+        self.assertContains(resp, "duplicate-warning")
+
+    def test_different_city_does_not_match(self):
+        resp = self.client.post(self.url, {
+            "name": "Chapter One", "city": str(self.other_city.pk),
+        })
+        self.assertNotContains(resp, "duplicate-warning")
+
+    def test_excludes_self_when_pk_provided(self):
+        # On the change page we pass the current pk; the row itself must not
+        # be flagged as its own duplicate.
+        resp = self.client.post(self.url, {
+            "name": "Chapter One",
+            "city": str(self.city.pk),
+            "pk": str(self.existing.pk),
+        })
+        self.assertNotContains(resp, "duplicate-warning")
+
+    def test_no_match_renders_empty(self):
+        resp = self.client.post(self.url, {
+            "name": "Brand New Place", "city": str(self.city.pk),
+        })
+        self.assertNotContains(resp, "duplicate-warning")
+
+    def test_malformed_city_returns_empty_not_500(self):
+        # A city value of "x" used to crash with ValueError when passed
+        # straight into the queryset; guard with int() parse instead.
+        resp = self.client.post(self.url, {"name": "Chapter One", "city": "x"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, "duplicate-warning")
+
+    def test_malformed_pk_falls_back_to_no_exclude(self):
+        resp = self.client.post(self.url, {
+            "name": "Chapter One",
+            "city": str(self.city.pk),
+            "pk": "not-an-int",
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "duplicate-warning")
+
+
 class ChangeFormFetchButtonTests(TestCase):
     """Smoke test: the admin add page renders with the Fetch attributes button
     and includes HTMX so the button can fire."""
@@ -638,6 +724,8 @@ class ChangeFormFetchButtonTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Fetch attributes")
         self.assertContains(resp, 'id="fetch-results"')
+        self.assertContains(resp, 'id="duplicate-warning"')
+        self.assertContains(resp, "/check-duplicate/")
         self.assertContains(resp, "htmx.min.js")
 
     def test_change_page_renders_with_fetch_button(self):

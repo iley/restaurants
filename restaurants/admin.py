@@ -113,8 +113,36 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
                 self.admin_site.admin_view(self.fetch_attributes_view),
                 name="restaurants_restaurant_fetch_attributes",
             ),
+            path(
+                "check-duplicate/",
+                self.admin_site.admin_view(self.check_duplicate_view),
+                name="restaurants_restaurant_check_duplicate",
+            ),
         ]
         return custom + urls
+
+    def check_duplicate_view(self, request):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+
+        name = request.POST.get("name", "").strip()
+        template = "admin/restaurants/restaurant/_duplicate_warning.html"
+        empty = TemplateResponse(request, template, {"duplicates": []})
+        if not name:
+            return empty
+        try:
+            city_id = int(request.POST.get("city", "").strip())
+        except ValueError:
+            return empty
+
+        qs = Restaurant.objects.filter(city_id=city_id, name__iexact=name).select_related("city")
+        pk_raw = request.POST.get("pk", "").strip()
+        if pk_raw:
+            try:
+                qs = qs.exclude(pk=int(pk_raw))
+            except ValueError:
+                pass
+        return TemplateResponse(request, template, {"duplicates": list(qs[:5])})
 
     def fetch_attributes_view(self, request):
         if request.method != "POST":

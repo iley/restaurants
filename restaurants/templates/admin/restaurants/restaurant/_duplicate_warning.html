@@ -1,0 +1,14 @@
+{% if duplicates %}
+  <div class="duplicate-warning">
+    <strong>Possible duplicate{{ duplicates|pluralize }} in this city:</strong>
+    <ul>
+      {% for r in duplicates %}
+        <li>
+          <a href="{% url 'admin:restaurants_restaurant_change' r.pk %}" target="_blank">{{ r.name }}</a>
+          {% if r.cuisine %}— {{ r.cuisine }}{% endif %}
+          {% if r.location %}({{ r.location }}){% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
