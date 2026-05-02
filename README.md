@@ -14,7 +14,11 @@ uv run manage.py migrate         # apply migrations
 
 ### Google Places integration
 
-Auto-fills address, website, Google Maps link, and Google rating from the Google Places API. Requires `GOOGLE_PLACES_API_KEY` environment variable (set in `ansible/secrets.yml` for production).
+Fills address, website, Google Maps link, and Google rating from the Google Places API. Requires `GOOGLE_PLACES_API_KEY` environment variable (set in `ansible/secrets.yml` for production).
+
+In the admin add/change form, click the **Fetch attributes** button after entering a name and city. A panel appears showing each fetchable field as current vs proposed; click **Apply** on a row (or **Apply all**) to fill the form input, then review and Save normally. Saves never trigger an automatic fetch — every value comes from an explicit click.
+
+Bulk options:
 
 ```bash
 uv run manage.py fetch_places_data              # backfill restaurants missing any Places field
@@ -25,7 +29,9 @@ uv run manage.py fetch_places_data --all         # include all restaurants, not 
 
 Also available as admin actions: "Fetch Google Places data" (backfill) and "Re-fetch Google Places data (overwrite)".
 
-New restaurants are automatically enriched on save when the API key is configured.
+#### Adding another source
+
+External lookups go through a small abstraction in `restaurants/sources.py`: each source is a callable `(Probe) -> dict | None`, registered in the `SOURCES` list. `fetch_all` merges results field by field, with the first source returning a non-empty value winning. To add a new source (e.g. Michelin), implement the callable, append it to `SOURCES`, and extend `FETCHABLE_FIELDS` if it surfaces new columns — the admin button, bulk actions, and management command pick it up automatically.
 
 ### Thumbnails
 

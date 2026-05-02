@@ -102,8 +102,8 @@ Existing bulk admin actions (`fetch_places_data`, `force_fetch_places_data`) sta
 - [x] manually confirm the admin page renders without console errors (skipped — manual browser check, not automatable).
 
 ### Task 6: [Final] Update documentation
-- [ ] update `README.md` under "Google Places integration" to describe the new Fetch button flow and that auto-fetch on save has been removed.
-- [ ] note the sources abstraction briefly so the next contributor (or future-you adding Michelin) sees the extension point.
+- [x] update `README.md` under "Google Places integration" to describe the new Fetch button flow and that auto-fetch on save has been removed.
+- [x] note the sources abstraction briefly so the next contributor (or future-you adding Michelin) sees the extension point.
 
 *Note: ralphex automatically moves completed plans to `docs/plans/completed/`*
 
