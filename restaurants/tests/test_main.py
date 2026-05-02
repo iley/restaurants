@@ -327,7 +327,6 @@ class UpdateMichelinDataCommandTests(TestCase):
         out = self.stdout_buf.getvalue()
         # Only changed rows are printed; unchanged and no-match rows are quiet.
         self.assertIn("Diff Me", out)
-        self.assertIn("WOULD CHANGE", out)
         self.assertNotIn("Same", out)
         self.assertNotIn("Lost", out)
         # Summary counts still cover all three rows.

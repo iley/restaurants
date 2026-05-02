@@ -72,9 +72,8 @@ class Command(BaseCommand):
                 continue
 
             proposed_label = Restaurant.MichelinStatus(proposed).label
-            verb = "CHANGED" if apply else "WOULD CHANGE"
             self.stdout.write(self.style.SUCCESS(
-                f"[{restaurant.name}] {verb}: {current_label} → {proposed_label}"
+                f"[{restaurant.name}] {current_label} →  {proposed_label}"
             ))
             if apply:
                 restaurant.michelin_status = proposed
