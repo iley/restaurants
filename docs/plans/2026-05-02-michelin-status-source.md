@@ -75,12 +75,12 @@ CSV updates are infrequent and semi-manual (the user re-downloads from Kaggle). 
 ## Implementation Steps
 
 ### Task 1: Project plumbing — dependency, CSV move, setting
-- [ ] `uv add rapidfuzz` to add the fuzzy-matching library; verify import works.
-- [ ] create `data/` directory; move `michelin_my_maps.csv` from repo root to `data/michelin_my_maps.csv`.
-- [ ] add `data/michelin_my_maps.csv` to `.gitignore` (or `data/*.csv` if preferred).
-- [ ] add `MICHELIN_CSV_PATH` setting in `config/settings.py`, default `BASE_DIR / "data" / "michelin_my_maps.csv"`.
-- [ ] write a smoke test that `settings.MICHELIN_CSV_PATH` is set (no actual file load yet).
-- [ ] run `uv run manage.py test restaurants` — must pass before Task 2.
+- [x] `uv add rapidfuzz` to add the fuzzy-matching library; verify import works.
+- [x] create `data/` directory; move `michelin_my_maps.csv` from repo root to `data/michelin_my_maps.csv`.
+- [x] add `data/michelin_my_maps.csv` to `.gitignore` (or `data/*.csv` if preferred).
+- [x] add `MICHELIN_CSV_PATH` setting in `config/settings.py`, default `BASE_DIR / "data" / "michelin_my_maps.csv"`.
+- [x] write a smoke test that `settings.MICHELIN_CSV_PATH` is set (no actual file load yet).
+- [x] run `uv run manage.py test restaurants` — must pass before Task 2.
 
 ### Task 2: CSV loader and fuzzy matcher (`restaurants/michelin.py`)
 - [ ] create `restaurants/michelin.py` with:

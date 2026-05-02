@@ -116,6 +116,10 @@ MEDIA_ROOT = os.environ.get("MEDIA_ROOT", BASE_DIR / "media")
 
 GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")
 
+MICHELIN_CSV_PATH = Path(
+    os.environ.get("MICHELIN_CSV_PATH", BASE_DIR / "data" / "michelin_my_maps.csv")
+)
+
 TILES_DIR = os.environ.get("TILES_DIR", BASE_DIR / "tiles")
 
 if not DEBUG:

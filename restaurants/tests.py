@@ -331,3 +331,14 @@ class ChangeFormFetchButtonTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Fetch attributes")
         self.assertContains(resp, 'id="fetch-results"')
+
+
+class MichelinCsvPathSettingTests(TestCase):
+    def test_setting_is_configured_under_data_dir(self):
+        from pathlib import Path
+
+        from django.conf import settings
+
+        path = Path(settings.MICHELIN_CSV_PATH)
+        self.assertEqual(path.name, "michelin_my_maps.csv")
+        self.assertEqual(path.parent.name, "data")
