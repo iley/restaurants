@@ -244,3 +244,34 @@ class FetchAttributesViewTests(TestCase):
         csrf_client.force_login(self.staff)
         resp = csrf_client.post(self.url, {"name": "X", "city": str(self.city.pk)})
         self.assertEqual(resp.status_code, 403)
+
+
+class ChangeFormFetchButtonTests(TestCase):
+    """Smoke test: the admin add page renders with the Fetch attributes button
+    and includes HTMX so the button can fire."""
+
+    @classmethod
+    def setUpTestData(cls):
+        User = get_user_model()
+        cls.staff = User.objects.create_superuser(
+            username="admin", password="pw", email="a@b.c",
+        )
+
+    def setUp(self):
+        self.client.force_login(self.staff)
+
+    def test_add_page_renders_with_fetch_button(self):
+        resp = self.client.get(reverse("admin:restaurants_restaurant_add"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Fetch attributes")
+        self.assertContains(resp, 'id="fetch-results"')
+        self.assertContains(resp, "htmx.min.js")
+
+    def test_change_page_renders_with_fetch_button(self):
+        city = City.objects.create(name="Dublin", slug="dublin")
+        restaurant = Restaurant.objects.create(city=city, name="Test", cuisine="Italian")
+        url = reverse("admin:restaurants_restaurant_change", args=[restaurant.pk])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Fetch attributes")
+        self.assertContains(resp, 'id="fetch-results"')

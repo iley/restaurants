@@ -76,18 +76,18 @@ Existing bulk admin actions (`fetch_places_data`, `force_fetch_places_data`) sta
 - [x] run `uv run manage.py test restaurants` — must pass before Task 3.
 
 ### Task 3: Wire the button into the admin change form
-- [ ] extend the existing `templates/admin/restaurants/restaurant/change_form.html` (do not rewrite — keep the photo dropzone intact):
+- [x] extend the existing `templates/admin/restaurants/restaurant/change_form.html` (do not rewrite — keep the photo dropzone intact):
   - add an `extrahead` block (or extend `extrastyle`) that includes `<script src="{% static 'restaurants/htmx.min.js' %}" defer></script>`. The admin doesn't load HTMX by default.
   - add an `object-tools-items` block contribution: a button that does `hx-post="{% url 'admin:restaurants_restaurant_fetch_attributes' %}"`, `hx-include="closest form"`, `hx-target="#fetch-results"`, `hx-swap="innerHTML"`. Include `{% csrf_token %}` via `hx-headers` or rely on the form's CSRF input (HTMX picks it up via `hx-include`).
   - add an empty `<div id="fetch-results"></div>` panel above the fieldsets (use a block override that injects HTML before `{{ block.super }}` for the form body, or place it in `content` block carefully).
-- [ ] verify on `add/` and `<id>/change/`:
+- [x] verify on `add/` and `<id>/change/` (skipped - manual browser test, not automatable; replaced by smoke tests below covering both pages):
   - button appears.
   - clicking it with an empty form shows a graceful empty-state message.
   - clicking it after typing a name + selecting a city populates the panel.
   - Apply button updates the corresponding form field; form Save persists the value.
   - photo dropzone still works (regression check).
-- [ ] add a smoke test: GET `/admin/restaurants/restaurant/add/` with a logged-in staff user returns 200 and contains the Fetch button text.
-- [ ] run `uv run manage.py test restaurants` — must pass before Task 4.
+- [x] add a smoke test: GET `/admin/restaurants/restaurant/add/` with a logged-in staff user returns 200 and contains the Fetch button text.
+- [x] run `uv run manage.py test restaurants` — must pass before Task 4.
 
 ### Task 4: Drop the silent save_model auto-fetch
 - [ ] remove the `save_model` override in `restaurants/admin.py:50-59`. Keep `super().save_model()` behavior (the default).
