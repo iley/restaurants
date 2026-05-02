@@ -1,8 +1,13 @@
 # TODO
 
-- [ ] Tags (e.g. "brunch", "wine" etc.)
+- [ ] Warn when user forgets to click "Apply" on the admin edit page
+- [ ] Pre-fill default city
+- [ ] Better way of handling different "cuisines"?
+- [ ] Better flow for dealing with errors when mass-updating Michelin status. Example: "Yakiniku Matsukawa" gets lumped together with "Matsukawa".
+- [ ] Auto-detect duplicates
 - [ ] Match colors on Michelin icons
-- [ ] Backups!
+- [x] Backups!
+- [x] Tags (e.g. "brunch", "wine" etc.)
 - [x] Strip metadata from image files on upload
 - [x] Markdown in the "Comment" field
 - [x] Change the date format on public pages to just month + year
