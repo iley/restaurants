@@ -5,6 +5,7 @@
 - [ ] Better way of handling different "cuisines"?
 - [ ] Better flow for dealing with errors when mass-updating Michelin status. Example: "Yakiniku Matsukawa" gets lumped together with "Matsukawa".
 - [ ] Auto-detect duplicates
+- [ ] Separate "None" and "Unknown" in Michelin statuses
 - [ ] Match colors on Michelin icons
 - [x] Backups!
 - [x] Tags (e.g. "brunch", "wine" etc.)
