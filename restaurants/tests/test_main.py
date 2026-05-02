@@ -259,6 +259,15 @@ class UpdateMichelinDataCommandTests(TestCase):
     """The `update_michelin_data` command diffs Michelin CSV matches against
     current values; default is dry-run, --apply writes only `michelin_status`."""
 
+    @classmethod
+    def setUpTestData(cls):
+        from pathlib import Path
+
+        # Pin to the test fixture so the CSV-presence guard in the command
+        # passes; the source itself is stubbed in `_run`, so the file is
+        # only read by the guard.
+        cls.fixture_csv = Path(__file__).parent / "fixtures" / "michelin_test.csv"
+
     def setUp(self):
         from io import StringIO
 
@@ -297,7 +306,7 @@ class UpdateMichelinDataCommandTests(TestCase):
         return stub
 
     def _run(self, *args):
-        with patch(
+        with override_settings(MICHELIN_CSV_PATH=self.fixture_csv), patch(
             "restaurants.management.commands.update_michelin_data.michelin_source",
             self._michelin_stub(),
         ):
@@ -376,13 +385,109 @@ class UpdateMichelinDataCommandTests(TestCase):
             return None
 
         stub.source_name = "Michelin Guide"
-        with patch(
+        with override_settings(MICHELIN_CSV_PATH=self.fixture_csv), patch(
             "restaurants.management.commands.update_michelin_data.michelin_source",
             stub,
         ):
             call_command("update_michelin_data", "--city", "dublin", stdout=self.stdout_buf)
         self.assertTrue(seen)
         self.assertTrue(all(name == "Dublin" for name in seen))
+
+    def test_aborts_when_csv_missing(self):
+        from django.core.management.base import CommandError
+
+        missing = self.fixture_csv.parent / "does_not_exist.csv"
+        with override_settings(MICHELIN_CSV_PATH=missing):
+            with self.assertRaises(CommandError) as cm:
+                call_command("update_michelin_data", stdout=self.stdout_buf)
+        self.assertIn(str(missing), str(cm.exception))
+
+    def test_aborts_when_csv_empty(self):
+        import tempfile
+        from django.core.management.base import CommandError
+
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as fh:
+            empty_path = fh.name
+        try:
+            with override_settings(MICHELIN_CSV_PATH=empty_path):
+                with self.assertRaises(CommandError) as cm:
+                    call_command("update_michelin_data", stdout=self.stdout_buf)
+            self.assertIn(empty_path, str(cm.exception))
+        finally:
+            import os
+            os.unlink(empty_path)
+
+    def test_aborts_when_csv_path_is_directory(self):
+        # A directory at the configured path used to slip past the missing/empty
+        # check (exists() True, st_size non-zero) and crash later in _load_city.
+        import tempfile
+        from django.core.management.base import CommandError
+
+        with tempfile.TemporaryDirectory() as dir_path:
+            with override_settings(MICHELIN_CSV_PATH=dir_path):
+                with self.assertRaises(CommandError) as cm:
+                    call_command("update_michelin_data", stdout=self.stdout_buf)
+            self.assertIn(dir_path, str(cm.exception))
+
+    def test_aborts_when_csv_missing_required_columns(self):
+        # A non-empty file with the wrong schema would otherwise yield zero
+        # matches and look like a mass demotion.
+        import os
+        import tempfile
+        from django.core.management.base import CommandError
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".csv", delete=False, mode="w", encoding="utf-8"
+        ) as fh:
+            fh.write("Foo,Bar,Baz\n1,2,3\n")
+            bad_path = fh.name
+        try:
+            with override_settings(MICHELIN_CSV_PATH=bad_path):
+                with self.assertRaises(CommandError) as cm:
+                    call_command("update_michelin_data", stdout=self.stdout_buf)
+            self.assertIn("missing required columns", str(cm.exception))
+        finally:
+            os.unlink(bad_path)
+
+    def test_aborts_when_csv_header_only(self):
+        # Header-present but no data rows: same failure mode as empty.
+        import os
+        import tempfile
+        from django.core.management.base import CommandError
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".csv", delete=False, mode="w", encoding="utf-8"
+        ) as fh:
+            fh.write("Name,Location,Award\n")
+            header_only_path = fh.name
+        try:
+            with override_settings(MICHELIN_CSV_PATH=header_only_path):
+                with self.assertRaises(CommandError) as cm:
+                    call_command("update_michelin_data", stdout=self.stdout_buf)
+            self.assertIn("no data rows", str(cm.exception))
+        finally:
+            os.unlink(header_only_path)
+
+    def test_aborts_when_csv_has_only_blank_rows(self):
+        # csv.reader yields [] for blank lines and ['', '', ''] for rows of
+        # only commas — neither is a real data row, so both must be rejected.
+        import os
+        import tempfile
+        from django.core.management.base import CommandError
+
+        for body in ("Name,Location,Award\n\n", "Name,Location,Award\n,,\n"):
+            with tempfile.NamedTemporaryFile(
+                suffix=".csv", delete=False, mode="w", encoding="utf-8"
+            ) as fh:
+                fh.write(body)
+                blank_path = fh.name
+            try:
+                with override_settings(MICHELIN_CSV_PATH=blank_path):
+                    with self.assertRaises(CommandError) as cm:
+                        call_command("update_michelin_data", stdout=self.stdout_buf)
+                self.assertIn("no data rows", str(cm.exception))
+            finally:
+                os.unlink(blank_path)
 
 
 class GooglePlacesSourceTests(TestCase):

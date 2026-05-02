@@ -170,6 +170,14 @@ class LoadCityCacheTests(TestCase):
         result = _load_city(Path("/nonexistent/michelin.csv"), "dublin")
         self.assertEqual(result, [])
 
+    def test_directory_path_returns_empty_list(self):
+        # If MICHELIN_CSV_PATH resolves to a directory (e.g. Docker bind-mount
+        # misconfig), _load_city must not crash with IsADirectoryError; admin
+        # actions invoke michelin_source unconditionally.
+        with tempfile.TemporaryDirectory() as dir_path:
+            result = _load_city(Path(dir_path), "dublin")
+        self.assertEqual(result, [])
+
 
 class MichelinSourceTests(TestCase):
     def setUp(self):

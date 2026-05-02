@@ -83,7 +83,9 @@ def _load_city(path: Path, city_normalized: str) -> list[MichelinEntry]:
     avoiding full materialization of the 19k-row CSV.
     """
     path = Path(path)
-    if not path.exists() or not city_normalized:
+    # is_file() (not exists()) so a directory at the configured path doesn't
+    # slip through and crash open() with IsADirectoryError in admin flows.
+    if not path.is_file() or not city_normalized:
         return []
     mtime = path.stat().st_mtime
     key = (str(path), mtime, city_normalized)
