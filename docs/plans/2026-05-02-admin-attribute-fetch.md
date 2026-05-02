@@ -90,10 +90,10 @@ Existing bulk admin actions (`fetch_places_data`, `force_fetch_places_data`) sta
 - [x] run `uv run manage.py test restaurants` — must pass before Task 4.
 
 ### Task 4: Drop the silent save_model auto-fetch
-- [ ] remove the `save_model` override in `restaurants/admin.py:50-59`. Keep `super().save_model()` behavior (the default).
-- [ ] verify by adding a new restaurant **without** clicking Fetch: address and website remain blank (previously they'd auto-fill silently).
-- [ ] update or remove any test from Task 1 that relied on the silent behavior (there shouldn't be any — this is purely a removal).
-- [ ] run `uv run manage.py test restaurants` — must pass before Task 5.
+- [x] remove the `save_model` override in `restaurants/admin.py:50-59`. Keep `super().save_model()` behavior (the default).
+- [x] verify by adding a new restaurant **without** clicking Fetch: address and website remain blank (previously they'd auto-fill silently). [manual test, skipped — not automatable; covered by code removal: no `save_model` override remains, default admin save behavior takes over]
+- [x] update or remove any test from Task 1 that relied on the silent behavior (there shouldn't be any — this is purely a removal).
+- [x] run `uv run manage.py test restaurants` — must pass before Task 5.
 
 ### Task 5: Verify acceptance criteria
 - [ ] verify all behaviors from Overview: Fetch button on add + change; per-field Apply; Apply-all; no silent auto-fetch on save; bulk admin actions unchanged.

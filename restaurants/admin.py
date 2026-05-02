@@ -11,7 +11,6 @@ from django.template.response import TemplateResponse
 from django.urls import path
 
 from .models import City, Photo, Restaurant, Tag, Visit
-from .places import apply_place_data, search_place
 from .sources import FETCHABLE_FIELDS, Probe, apply_fetched, fetch_all
 
 logger = logging.getLogger(__name__)
@@ -122,17 +121,6 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
 
         message = "" if rows else "No proposed changes."
         return TemplateResponse(request, template, {"rows": rows, "message": message})
-
-    def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-        api_key = settings.GOOGLE_PLACES_API_KEY
-        if not api_key or obj.address:
-            return
-        data = search_place(obj.name, obj.city.name, api_key, obj.location)
-        if data:
-            fields = apply_place_data(obj, data)
-            if fields:
-                obj.save(update_fields=fields)
 
     @admin.action(description="Fetch Google Places data")
     def fetch_places_data(self, request, queryset):
