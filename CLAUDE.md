@@ -22,18 +22,27 @@ uv run manage.py shell           # interactive Django shell
 uv add <package>                 # add a dependency
 ```
 
-### Google Places integration
+### Attribute fetching
 
-Requires `GOOGLE_PLACES_API_KEY` environment variable.
+Sources are `(Probe) -> dict | None` callables registered in `restaurants/sources.py`.
+`SOURCES` is the full list (used by the admin Fetch attributes button); `LIVE_SOURCES`
+is the subset safe to run in bulk (Google Places only — Michelin is reviewed
+separately). `FETCHABLE_FIELDS` is the shared whitelist.
 
 ```bash
-uv run manage.py fetch_places_data              # backfill restaurants missing any Places field
-uv run manage.py fetch_places_data --city dublin # only a specific city
-uv run manage.py fetch_places_data --force       # overwrite existing data with fresh API values
-uv run manage.py fetch_places_data --all         # include all restaurants, not just those missing data
+uv run manage.py fetch_all_data            # bulk backfill across LIVE_SOURCES
+uv run manage.py fetch_google_places_data  # Google Places only (renamed from fetch_places_data)
+uv run manage.py update_michelin_data      # Michelin diff; --apply to write
 ```
 
-Also available as admin actions: "Fetch Google Places data" (backfill) and "Re-fetch Google Places data (overwrite)".
+Each command supports `--city <slug>`, `--force`, and `--all` (except
+`update_michelin_data`, which uses `--city` and `--apply`). Google Places
+commands require `GOOGLE_PLACES_API_KEY`. The Michelin CSV path is configurable
+via `MICHELIN_CSV_PATH` (defaults to `data/michelin_my_maps.csv`); the file is
+gitignored and uploaded by Ansible.
+
+Tests live in `restaurants/tests/` (a package): `test_main.py`,
+`test_michelin.py`, and `fixtures/`. Run with `uv run manage.py test restaurants`.
 
 ### Deployment
 

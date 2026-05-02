@@ -79,12 +79,14 @@
         owner: ec2-user
         group: ec2-user
         mode: "0644"
-      when: michelin_csv_local.stat.exists
+      # Skip empty/zero-byte locals so a stray placeholder file can't blank
+      # out a good production CSV.
+      when: michelin_csv_local.stat.exists and michelin_csv_local.stat.size > 0
 
     - name: Skip Michelin CSV upload (no local file)
       debug:
-        msg: "Skipping Michelin CSV upload — no local file at data/michelin_my_maps.csv"
-      when: not michelin_csv_local.stat.exists
+        msg: "Skipping Michelin CSV upload — no local CSV at data/michelin_my_maps.csv (or file is empty)"
+      when: not (michelin_csv_local.stat.exists and michelin_csv_local.stat.size > 0)
 
     - name: Install Docker
       dnf:

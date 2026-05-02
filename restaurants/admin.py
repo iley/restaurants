@@ -24,6 +24,24 @@ def _parse_decimal(value):
         return None
 
 
+def _choice_label(field, value):
+    """Return the human-readable label for a choice value, else the value itself.
+
+    Form-style POST data and TextChoices fields both render as raw slugs
+    (e.g. `two_stars`); panels should show the choice's display label.
+    """
+    if not value:
+        return value
+    try:
+        model_field = Restaurant._meta.get_field(field)
+    except Exception:
+        return value
+    choices = getattr(model_field, "flatchoices", None)
+    if not choices:
+        return value
+    return dict(choices).get(value, value)
+
+
 def _values_equal(current, proposed):
     """Compare a POSTed string to a fetched value for the unchanged-row check.
 
@@ -133,8 +151,9 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
             rows.append({
                 "field": field,
                 "label": field.replace("_", " ").title(),
-                "current": current_val,
+                "current_display": _choice_label(field, current_val),
                 "proposed": proposed_val,
+                "proposed_display": _choice_label(field, proposed_val),
                 "source_name": fv.source_name,
                 "input_id": f"id_{field}",
             })

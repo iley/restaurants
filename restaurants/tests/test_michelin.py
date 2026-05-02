@@ -1,4 +1,6 @@
 import os
+import shutil
+import tempfile
 import time
 from decimal import Decimal
 from pathlib import Path
@@ -152,13 +154,16 @@ class LoadCityCacheTests(TestCase):
         self.assertEqual(mocked.call_count, 2)
 
     def test_mtime_change_invalidates_cache(self):
-        real_open = open
-        with patch("restaurants.michelin.open", side_effect=real_open) as mocked:
-            _load_city(FIXTURE_CSV, "dublin")
-            # Bump the file mtime to simulate a CSV refresh.
-            new_mtime = time.time() + 1
-            os.utime(FIXTURE_CSV, (new_mtime, new_mtime))
-            _load_city(FIXTURE_CSV, "dublin")
+        # Copy the fixture so bumping mtime doesn't pollute the checked-in file.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_csv = Path(tmp) / "michelin.csv"
+            shutil.copy(FIXTURE_CSV, tmp_csv)
+            real_open = open
+            with patch("restaurants.michelin.open", side_effect=real_open) as mocked:
+                _load_city(tmp_csv, "dublin")
+                new_mtime = time.time() + 1
+                os.utime(tmp_csv, (new_mtime, new_mtime))
+                _load_city(tmp_csv, "dublin")
         self.assertEqual(mocked.call_count, 2)
 
     def test_missing_file_returns_empty_list(self):

@@ -59,17 +59,14 @@ class Command(BaseCommand):
                 unchanged += 1
                 continue
 
-            restaurant.michelin_status = proposed
-            proposed_label = restaurant.get_michelin_status_display()
+            proposed_label = Restaurant.MichelinStatus(proposed).label
             verb = "CHANGED" if apply else "WOULD CHANGE"
             self.stdout.write(self.style.SUCCESS(
                 f"[{restaurant.name}] {verb}: {current_label} → {proposed_label}"
             ))
             if apply:
+                restaurant.michelin_status = proposed
                 restaurant.save(update_fields=["michelin_status"])
-            else:
-                # Revert in-memory mutation so dry-run does not leak state.
-                restaurant.michelin_status = current
             would_change += 1
 
         verb = "changed" if apply else "would change"

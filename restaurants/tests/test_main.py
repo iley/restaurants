@@ -595,12 +595,12 @@ class MichelinFetchAttributesPanelTests(TestCase):
         # A Michelin row must be rendered: the fixture entry "Patrick Guilbaud"
         # in Dublin maps to "2 Stars" -> MichelinStatus.TWO_STARS ("two_stars").
         self.assertContains(fetch_resp, 'data-target="id_michelin_status"')
-        self.assertContains(
-            fetch_resp,
-            f'data-value="{Restaurant.MichelinStatus.TWO_STARS}"',
-        )
+        # data-value carries the raw slug (the form select expects it).
+        self.assertContains(fetch_resp, 'data-value="two_stars"')
         self.assertContains(fetch_resp, "Michelin Status")
         self.assertContains(fetch_resp, "Michelin Guide")
+        # The visible cell shows the human label, not the slug.
+        self.assertContains(fetch_resp, "<td class=\"fetch-proposed\">2 Stars</td>")
 
 
 class MichelinCsvPathSettingTests(TestCase):

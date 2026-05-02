@@ -12,10 +12,8 @@ import csv
 import math
 import re
 import unicodedata
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
-
 from typing import TYPE_CHECKING
 
 from rapidfuzz import fuzz
@@ -59,10 +57,9 @@ def _normalize(s: str) -> str:
 class MichelinEntry:
     name: str
     normalized_name: str
-    name_tokens: frozenset[str]
     city_normalized: str
-    latitude: Optional[float]
-    longitude: Optional[float]
+    latitude: float | None
+    longitude: float | None
     status: str
 
 
@@ -70,7 +67,7 @@ class MichelinEntry:
 _CITY_CACHE: dict[tuple[str, float, str], list[MichelinEntry]] = {}
 
 
-def _parse_coord(value: str) -> Optional[float]:
+def _parse_coord(value: str) -> float | None:
     if not value:
         return None
     try:
@@ -113,7 +110,6 @@ def _load_city(path: Path, city_normalized: str) -> list[MichelinEntry]:
             entries.append(MichelinEntry(
                 name=name,
                 normalized_name=normalized_name,
-                name_tokens=frozenset(normalized_name.split()),
                 city_normalized=entry_city_norm,
                 latitude=_parse_coord(row.get("Latitude") or ""),
                 longitude=_parse_coord(row.get("Longitude") or ""),
@@ -132,7 +128,7 @@ def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * r * math.asin(math.sqrt(a))
 
 
-def match(probe: "Probe") -> Optional[MichelinEntry]:
+def match(probe: "Probe") -> MichelinEntry | None:
     """Return the best CSV entry matching `probe`, or None if uncertain."""
     from django.conf import settings
 
@@ -168,7 +164,7 @@ def match(probe: "Probe") -> Optional[MichelinEntry]:
     return scored[0][1]
 
 
-def michelin_source(probe: "Probe") -> Optional[dict]:
+def michelin_source(probe: "Probe") -> dict | None:
     """Adapter exposing Michelin guide CSV matches to the sources registry."""
     entry = match(probe)
     if entry is None:
