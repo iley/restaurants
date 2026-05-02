@@ -12,26 +12,70 @@ uv run manage.py makemigrations  # after model changes
 uv run manage.py migrate         # apply migrations
 ```
 
-### Google Places integration
+### Attribute fetching
+
+External lookups go through a small abstraction in `restaurants/sources.py`: each source is a callable `(Probe) -> dict | None`, registered in the `SOURCES` list. `fetch_all` merges results field by field, with the first source returning a non-empty value winning.
+
+In the admin add/change form, click the **Fetch attributes** button after entering a name and city. A panel appears showing each fetchable field as current vs proposed; click **Apply** on a row (or **Apply all**) to fill the form input, then review and Save normally. Saves never trigger an automatic fetch — every value comes from an explicit click. The button consults all registered sources (Google Places + Michelin).
+
+Bulk command for live external sources (Google Places only — Michelin is handled separately, see below):
+
+```bash
+uv run manage.py fetch_all_data              # backfill restaurants missing any live-source field
+uv run manage.py fetch_all_data --city dublin # only a specific city
+uv run manage.py fetch_all_data --force       # overwrite existing data with fresh API values
+uv run manage.py fetch_all_data --all         # include all restaurants, not just those missing data
+```
+
+`michelin_status` is intentionally not part of `fetch_all_data` because Michelin updates are infrequent and reviewed separately — see the Michelin section below.
+
+#### Google Places only
 
 Fills address, website, Google Maps link, and Google rating from the Google Places API. Requires `GOOGLE_PLACES_API_KEY` environment variable (set in `ansible/secrets.yml` for production).
 
-In the admin add/change form, click the **Fetch attributes** button after entering a name and city. A panel appears showing each fetchable field as current vs proposed; click **Apply** on a row (or **Apply all**) to fill the form input, then review and Save normally. Saves never trigger an automatic fetch — every value comes from an explicit click.
-
-Bulk options:
-
 ```bash
-uv run manage.py fetch_places_data              # backfill restaurants missing any Places field
-uv run manage.py fetch_places_data --city dublin # only a specific city
-uv run manage.py fetch_places_data --force       # overwrite existing data with fresh API values
-uv run manage.py fetch_places_data --all         # include all restaurants, not just those missing data
+uv run manage.py fetch_google_places_data              # backfill restaurants missing any Places field
+uv run manage.py fetch_google_places_data --city dublin # only a specific city
+uv run manage.py fetch_google_places_data --force       # overwrite existing data with fresh API values
+uv run manage.py fetch_google_places_data --all         # include all restaurants, not just those missing data
 ```
 
 Also available as admin actions: "Fetch Google Places data" (backfill) and "Re-fetch Google Places data (overwrite)".
 
+### Michelin guide integration
+
+Fills `michelin_status` from a local copy of the Michelin guide CSV. Matching is fuzzy (handles accents, capitalization, and missing words like "Bloom" vs "Bloom Brasserie") with lat/lon proximity as a tiebreaker.
+
+Data source: download `michelin_my_maps.csv` from [the Kaggle Michelin guide dataset](https://www.kaggle.com/datasets/ngshiheng/michelin-guide-restaurants-2021) and place it at `data/michelin_my_maps.csv`. The file is gitignored. Credits to the dataset author and Michelin.
+
+The path is configurable via the `MICHELIN_CSV_PATH` env var (default: `data/michelin_my_maps.csv` relative to the project root). In production the container bind-mounts the host CSV at `/app/data/michelin_my_maps.csv` and sets the env var accordingly.
+
+Local refresh:
+
+```bash
+# 1. Re-download the CSV from Kaggle, replace data/michelin_my_maps.csv.
+# 2. Review the diff (dry-run by default):
+uv run manage.py update_michelin_data
+uv run manage.py update_michelin_data --city dublin  # scope to one city
+# 3. Apply the changes:
+uv run manage.py update_michelin_data --apply
+```
+
+The diff prints one line per restaurant: `no change`, `WOULD CHANGE: <current> → <proposed>`, or `no CSV match` (useful for spotting demotions — manually fix these).
+
+Production refresh: replace the local CSV, then `./deploy.sh` (Ansible uploads the CSV iff it changed; no container restart). Then SSH and apply against the prod DB:
+
+```bash
+ssh ec2-user@<elastic-ip>
+sudo docker exec -it restaurants python manage.py update_michelin_data           # review
+sudo docker exec -it restaurants python manage.py update_michelin_data --apply   # apply
+```
+
+Also available as admin actions: "Update Michelin status" (skip rows whose status is already set) and "Re-fetch Michelin status (overwrite)".
+
 #### Adding another source
 
-External lookups go through a small abstraction in `restaurants/sources.py`: each source is a callable `(Probe) -> dict | None`, registered in the `SOURCES` list. `fetch_all` merges results field by field, with the first source returning a non-empty value winning. To add a new source (e.g. Michelin), implement the callable, append it to `SOURCES`, and extend `FETCHABLE_FIELDS` if it surfaces new columns — the admin button, bulk actions, and management command pick it up automatically.
+To add a new source, implement a `(Probe) -> dict | None` callable in `restaurants/`, append it to `SOURCES` in `sources.py`, and extend `FETCHABLE_FIELDS` if it surfaces new columns — the admin button picks it up automatically. If the source should also run in `fetch_all_data`, add it to `LIVE_SOURCES` too.
 
 ### Thumbnails
 
@@ -128,7 +172,3 @@ SSH into the server and use `docker exec` to run Django management commands insi
 ssh ec2-user@<elastic-ip>
 sudo docker exec -it restaurants python manage.py <command>
 ```
-
-#### Michelin Restaurants Dataset
-
-Download `michelin_my_maps.csv` from https://www.kaggle.com/datasets/ngshiheng/michelin-guide-restaurants-2021. Credits to the dataset author and Michelin.

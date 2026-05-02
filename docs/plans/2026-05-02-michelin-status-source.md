@@ -171,7 +171,7 @@ CSV updates are infrequent and semi-manual (the user re-downloads from Kaggle). 
 - [x] run linter if the project has one configured (check `pyproject.toml`); fix any issues. (No linter configured in `pyproject.toml` — only runtime deps are listed; nothing to run.)
 
 ### Task 9: [Final] Update documentation
-- [ ] update `README.md`:
+- [x] update `README.md`:
   - "Google Places integration" section: rename `fetch_places_data` → `fetch_google_places_data`; add `fetch_all_data` description.
   - new "Michelin guide integration" section explaining:
     - data source: download CSV from Kaggle (link the dataset page) and place at `data/michelin_my_maps.csv`.
@@ -179,7 +179,7 @@ CSV updates are infrequent and semi-manual (the user re-downloads from Kaggle). 
     - production refresh: replace the local CSV, run `./deploy.sh` (Ansible uploads the CSV iff it changed; no container restart), then SSH and `docker exec restaurants uv run manage.py update_michelin_data` (`--apply` after reviewing).
     - admin actions: "Update Michelin status" / "Re-fetch Michelin status (overwrite)".
     - note that `michelin_status` is not part of `fetch_all_data` because Michelin updates are infrequent and reviewed separately.
-- [ ] mention `MICHELIN_CSV_PATH` env var briefly (default location, container path, override knob).
+- [x] mention `MICHELIN_CSV_PATH` env var briefly (default location, container path, override knob).
 
 *Note: ralphex automatically moves completed plans to `docs/plans/completed/`.*
 
