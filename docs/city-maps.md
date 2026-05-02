@@ -65,7 +65,7 @@ on restaurants where they're currently null, leaving all other fields untouched.
 After deploying the model change, run:
 
 ```bash
-uv run manage.py fetch_places_data --all
+uv run manage.py fetch_google_places_data --all
 ```
 
 This will fill in coordinates for all restaurants without touching existing
