@@ -135,12 +135,12 @@ CSV updates are infrequent and semi-manual (the user re-downloads from Kaggle). 
 - [x] run tests — must pass before Task 6.
 
 ### Task 6: Admin actions split
-- [ ] in `restaurants/admin.py`:
+- [x] in `restaurants/admin.py`:
   - Rename action `fetch_places_data` description from "Fetch Google Places data" to "Fetch Google Places data" (already correct) but ensure it scopes to `[google_places_source]` (it routes through `fetch_all` which now includes Michelin by default — pin sources explicitly).
   - Rename `force_fetch_places_data` similarly: pin to `[google_places_source]`.
   - Add new actions `update_michelin_status` and `force_update_michelin_status`: same pattern but pinned to `[michelin_source]`. Force version overwrites current `michelin_status` even when current is non-empty (since `none` is the default).
-- [ ] write tests for the new admin actions (mirror the existing places-action tests) using the staff client.
-- [ ] run tests — must pass before Task 7.
+- [x] write tests for the new admin actions (mirror the existing places-action tests) using the staff client. (Replaced the per-action `_do_fetch_places` helper with a shared `_run_sources` that takes an explicit `sources` list and label, then added direct-method-call tests using `RequestFactory` + `FallbackStorage`.)
+- [x] run tests — must pass before Task 7.
 
 ### Task 7: Wire CSV into Ansible deploy
 - [ ] in `ansible/group_vars/all.yml`, add `michelin_csv_dir: /opt/restaurants/data` and `michelin_csv_path: "{{ michelin_csv_dir }}/michelin_my_maps.csv"`.

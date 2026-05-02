@@ -556,3 +556,203 @@ class MichelinCsvPathSettingTests(TestCase):
         path = Path(settings.MICHELIN_CSV_PATH)
         self.assertEqual(path.name, "michelin_my_maps.csv")
         self.assertEqual(path.parent.name, "data")
+
+
+class _AdminActionTestBase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        User = get_user_model()
+        cls.admin_user = User.objects.create_superuser(
+            username="admin", password="pw", email="a@b.c",
+        )
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+
+    def setUp(self):
+        from django.contrib import admin as django_admin
+        self.model_admin = django_admin.site._registry[Restaurant]
+
+    def _request(self):
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        from django.test import RequestFactory
+
+        rf = RequestFactory()
+        req = rf.post("/admin/restaurants/restaurant/")
+        req.user = self.admin_user
+        req.session = self.client.session
+        setattr(req, "_messages", FallbackStorage(req))
+        return req
+
+
+class MichelinAdminActionTests(_AdminActionTestBase):
+    """Admin actions for Michelin status updates, pinned to [michelin_source]."""
+
+    def test_force_action_overwrites_default_none_status(self):
+        # The default `michelin_status="none"` is non-empty, so only the force
+        # variant actually writes — that's the documented intent.
+        r = Restaurant.objects.create(city=self.city, name="X", cuisine="French")
+        fetched = {
+            "michelin_status": FetchedValue(
+                value=Restaurant.MichelinStatus.ONE_STAR,
+                source_name="Michelin Guide",
+            ),
+        }
+        with patch("restaurants.admin.fetch_all", return_value=fetched) as mock_fetch:
+            self.model_admin.force_update_michelin_status(
+                self._request(), Restaurant.objects.all(),
+            )
+        from restaurants.michelin import michelin_source
+        _, kwargs = mock_fetch.call_args
+        self.assertEqual(kwargs["sources"], [michelin_source])
+        r.refresh_from_db()
+        self.assertEqual(r.michelin_status, Restaurant.MichelinStatus.ONE_STAR)
+
+    def test_non_force_action_skips_when_current_is_default_none(self):
+        r = Restaurant.objects.create(city=self.city, name="X", cuisine="French")
+        fetched = {
+            "michelin_status": FetchedValue(
+                value=Restaurant.MichelinStatus.ONE_STAR,
+                source_name="Michelin Guide",
+            ),
+        }
+        with patch("restaurants.admin.fetch_all", return_value=fetched):
+            self.model_admin.update_michelin_status(
+                self._request(), Restaurant.objects.all(),
+            )
+        r.refresh_from_db()
+        self.assertEqual(r.michelin_status, Restaurant.MichelinStatus.NONE)
+
+    def test_force_action_writes_only_michelin_status_field(self):
+        Restaurant.objects.create(city=self.city, name="X", cuisine="French")
+        fetched = {
+            "michelin_status": FetchedValue(
+                value=Restaurant.MichelinStatus.BIB_GOURMAND,
+                source_name="Michelin Guide",
+            ),
+        }
+        captured: list[list[str]] = []
+        original_save = Restaurant.save
+
+        def capturing_save(instance, *args, **kwargs):
+            if "update_fields" in kwargs:
+                captured.append(list(kwargs["update_fields"]))
+            return original_save(instance, *args, **kwargs)
+
+        with patch("restaurants.admin.fetch_all", return_value=fetched), \
+             patch.object(Restaurant, "save", capturing_save):
+            self.model_admin.force_update_michelin_status(
+                self._request(), Restaurant.objects.all(),
+            )
+        self.assertEqual(captured, [["michelin_status"]])
+
+    def test_action_does_not_call_google_places_source(self):
+        r = Restaurant.objects.create(city=self.city, name="X", cuisine="French")
+        # If michelin_source is the only source passed, fetch_all must not invoke
+        # google_places_source — verify by patching the registry stand-ins.
+        google_calls: list[str] = []
+        michelin_calls: list[str] = []
+
+        def google_stub(probe):
+            google_calls.append(probe.name)
+            return {"address": "1 Main St"}
+
+        google_stub.source_name = "Google Places"
+
+        def michelin_stub(probe):
+            michelin_calls.append(probe.name)
+            return {"michelin_status": Restaurant.MichelinStatus.ONE_STAR}
+
+        michelin_stub.source_name = "Michelin Guide"
+
+        with patch("restaurants.admin.google_places_source", google_stub), \
+             patch("restaurants.admin.michelin_source", michelin_stub):
+            self.model_admin.force_update_michelin_status(
+                self._request(), Restaurant.objects.all(),
+            )
+        self.assertEqual(michelin_calls, [r.name])
+        self.assertEqual(google_calls, [])
+        r.refresh_from_db()
+        self.assertEqual(r.michelin_status, Restaurant.MichelinStatus.ONE_STAR)
+
+    def test_actions_registered_on_changelist(self):
+        # The action dropdown only renders when the changelist has rows.
+        Restaurant.objects.create(city=self.city, name="X", cuisine="French")
+        self.client.force_login(self.admin_user)
+        url = reverse("admin:restaurants_restaurant_changelist")
+        resp = self.client.get(url)
+        self.assertContains(resp, "update_michelin_status")
+        self.assertContains(resp, "force_update_michelin_status")
+
+
+@override_settings(GOOGLE_PLACES_API_KEY="test-key")
+class PlacesAdminActionScopingTests(_AdminActionTestBase):
+    """The places admin actions must pin to [google_places_source] so that
+    `fetch_all`'s default `SOURCES` list (which now includes Michelin) does
+    not silently drag Michelin lookups into the Places-labelled actions."""
+
+    def test_fetch_places_data_pins_to_google_places_source(self):
+        Restaurant.objects.create(city=self.city, name="X", cuisine="French")
+        with patch("restaurants.admin.fetch_all", return_value={}) as mock_fetch:
+            self.model_admin.fetch_places_data(
+                self._request(), Restaurant.objects.all(),
+            )
+        from restaurants.places import google_places_source
+        _, kwargs = mock_fetch.call_args
+        self.assertEqual(kwargs["sources"], [google_places_source])
+
+    def test_force_fetch_places_data_pins_to_google_places_source(self):
+        Restaurant.objects.create(city=self.city, name="X", cuisine="French")
+        with patch("restaurants.admin.fetch_all", return_value={}) as mock_fetch:
+            self.model_admin.force_fetch_places_data(
+                self._request(), Restaurant.objects.all(),
+            )
+        from restaurants.places import google_places_source
+        _, kwargs = mock_fetch.call_args
+        self.assertEqual(kwargs["sources"], [google_places_source])
+
+    def test_fetch_places_data_never_writes_michelin_status(self):
+        # Even if Michelin would have matched, it isn't in the source list,
+        # so michelin_status must never appear in update_fields.
+        r = Restaurant.objects.create(city=self.city, name="X", cuisine="French")
+        google_payload = {"address": "1 Main St"}
+        michelin_payload = {"michelin_status": Restaurant.MichelinStatus.ONE_STAR}
+
+        def google_stub(probe):
+            return google_payload
+
+        google_stub.source_name = "Google Places"
+
+        def michelin_stub(probe):
+            return michelin_payload
+
+        michelin_stub.source_name = "Michelin Guide"
+
+        captured: list[list[str]] = []
+        original_save = Restaurant.save
+
+        def capturing_save(instance, *args, **kwargs):
+            if "update_fields" in kwargs:
+                captured.append(list(kwargs["update_fields"]))
+            return original_save(instance, *args, **kwargs)
+
+        with patch("restaurants.admin.google_places_source", google_stub), \
+             patch("restaurants.admin.michelin_source", michelin_stub), \
+             patch.object(Restaurant, "save", capturing_save):
+            self.model_admin.fetch_places_data(
+                self._request(), Restaurant.objects.all(),
+            )
+        flat = [f for fields in captured for f in fields]
+        self.assertIn("address", flat)
+        self.assertNotIn("michelin_status", flat)
+        r.refresh_from_db()
+        self.assertEqual(r.michelin_status, Restaurant.MichelinStatus.NONE)
+
+
+class PlacesAdminActionMissingApiKeyTests(_AdminActionTestBase):
+    @override_settings(GOOGLE_PLACES_API_KEY="")
+    def test_fetch_places_data_short_circuits_without_api_key(self):
+        Restaurant.objects.create(city=self.city, name="X", cuisine="French")
+        with patch("restaurants.admin.fetch_all") as mock_fetch:
+            self.model_admin.fetch_places_data(
+                self._request(), Restaurant.objects.all(),
+            )
+        mock_fetch.assert_not_called()

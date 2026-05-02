@@ -9,7 +9,9 @@ from django.http import HttpResponseNotAllowed
 from django.template.response import TemplateResponse
 from django.urls import path
 
+from .michelin import michelin_source
 from .models import City, Photo, Restaurant, Tag, Visit
+from .places import google_places_source
 from .sources import FETCHABLE_FIELDS, Probe, apply_fetched, fetch_all
 
 
@@ -71,7 +73,12 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
     search_fields = ["name", "cuisine", "location", "comments"]
     filter_horizontal = ["tags"]
     inlines = [VisitInline, PhotoInline]
-    actions = ["fetch_places_data", "force_fetch_places_data"]
+    actions = [
+        "fetch_places_data",
+        "force_fetch_places_data",
+        "update_michelin_status",
+        "force_update_michelin_status",
+    ]
 
     def get_urls(self):
         urls = super().get_urls()
@@ -137,24 +144,30 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
 
     @admin.action(description="Fetch Google Places data")
     def fetch_places_data(self, request, queryset):
-        self._do_fetch_places(request, queryset, force=False)
+        if not settings.GOOGLE_PLACES_API_KEY:
+            self.message_user(request, "GOOGLE_PLACES_API_KEY is not configured.", level="error")
+            return
+        self._run_sources(request, queryset, [google_places_source], force=False, label="Places data")
 
     @admin.action(description="Re-fetch Google Places data (overwrite)")
     def force_fetch_places_data(self, request, queryset):
-        self._do_fetch_places(request, queryset, force=True)
-
-    def _do_fetch_places(self, request, queryset, force):
         if not settings.GOOGLE_PLACES_API_KEY:
-            self.message_user(
-                request,
-                "GOOGLE_PLACES_API_KEY is not configured.",
-                level="error",
-            )
+            self.message_user(request, "GOOGLE_PLACES_API_KEY is not configured.", level="error")
             return
+        self._run_sources(request, queryset, [google_places_source], force=True, label="Places data")
 
+    @admin.action(description="Update Michelin status")
+    def update_michelin_status(self, request, queryset):
+        self._run_sources(request, queryset, [michelin_source], force=False, label="Michelin status")
+
+    @admin.action(description="Re-fetch Michelin status (overwrite)")
+    def force_update_michelin_status(self, request, queryset):
+        self._run_sources(request, queryset, [michelin_source], force=True, label="Michelin status")
+
+    def _run_sources(self, request, queryset, sources, force, label):
         updated = not_found = skipped = 0
         for restaurant in queryset.select_related("city"):
-            fetched = fetch_all(Probe.from_restaurant(restaurant))
+            fetched = fetch_all(Probe.from_restaurant(restaurant), sources=sources)
             if not fetched:
                 not_found += 1
                 continue
@@ -167,7 +180,7 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
 
         self.message_user(
             request,
-            f"Places data: {updated} updated, {not_found} not found, {skipped} already complete.",
+            f"{label}: {updated} updated, {not_found} not found, {skipped} already complete.",
         )
 
 
