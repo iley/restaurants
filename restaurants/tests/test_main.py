@@ -547,6 +547,62 @@ class ChangeFormFetchButtonTests(TestCase):
         self.assertContains(resp, 'id="fetch-results"')
 
 
+class MichelinFetchAttributesPanelTests(TestCase):
+    """End-to-end smoke test: the admin change form's per-field fetch panel
+    surfaces a Michelin status row when the restaurant matches the CSV.
+
+    Pins MICHELIN_CSV_PATH to the test fixture and disables Google Places so
+    the fetched dict is Michelin-only — proves the registered `michelin_source`
+    flows all the way through `fetch_all` into the rendered admin panel.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        from pathlib import Path
+
+        cls.fixture_csv = Path(__file__).parent / "fixtures" / "michelin_test.csv"
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+        cls.restaurant = Restaurant.objects.create(
+            city=cls.city, name="Patrick Guilbaud", cuisine="French",
+        )
+        User = get_user_model()
+        cls.staff = User.objects.create_superuser(
+            username="admin", password="pw", email="a@b.c",
+        )
+
+    def setUp(self):
+        from restaurants import michelin
+        michelin._CITY_CACHE.clear()
+        self.client.force_login(self.staff)
+
+    @override_settings(GOOGLE_PLACES_API_KEY="")
+    def test_change_form_then_fetch_panel_shows_michelin_row(self):
+        with override_settings(MICHELIN_CSV_PATH=self.fixture_csv):
+            change_url = reverse(
+                "admin:restaurants_restaurant_change", args=[self.restaurant.pk],
+            )
+            change_resp = self.client.get(change_url)
+            self.assertEqual(change_resp.status_code, 200)
+
+            fetch_url = reverse("admin:restaurants_restaurant_fetch_attributes")
+            fetch_resp = self.client.post(fetch_url, {
+                "name": self.restaurant.name,
+                "city": str(self.city.pk),
+                "michelin_status": self.restaurant.michelin_status,
+            })
+
+        self.assertEqual(fetch_resp.status_code, 200)
+        # A Michelin row must be rendered: the fixture entry "Patrick Guilbaud"
+        # in Dublin maps to "2 Stars" -> MichelinStatus.TWO_STARS ("two_stars").
+        self.assertContains(fetch_resp, 'data-target="id_michelin_status"')
+        self.assertContains(
+            fetch_resp,
+            f'data-value="{Restaurant.MichelinStatus.TWO_STARS}"',
+        )
+        self.assertContains(fetch_resp, "Michelin Status")
+        self.assertContains(fetch_resp, "Michelin Guide")
+
+
 class MichelinCsvPathSettingTests(TestCase):
     def test_setting_is_configured_under_data_dir(self):
         from pathlib import Path

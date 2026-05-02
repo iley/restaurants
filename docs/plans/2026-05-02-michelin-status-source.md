@@ -159,16 +159,16 @@ CSV updates are infrequent and semi-manual (the user re-downloads from Kaggle). 
 - [x] run `uv run manage.py test restaurants` — must pass before Task 8.
 
 ### Task 8: Verify acceptance criteria
-- [ ] verify all six behaviors from Overview:
+- [x] verify all six behaviors from Overview:
   1. CSV-driven fuzzy matching works for accent / casing / missing-word cases (covered by Task 2 tests).
   2. `michelin_source` plugs into `fetch_all` (covered by Task 3 tests).
   3. Three management commands exist with the agreed scopes (covered by Tasks 4, 5).
   4. Admin "Fetch attributes" button now offers a Michelin row (covered by Task 3 tests + smoke test below).
   5. CSV is gitignored and path is configurable (covered by Task 1 + Task 7 tests).
   6. Deploy uploads the CSV idempotently (verified manually — see Post-Completion).
-- [ ] add a smoke test: with the test fixture CSV path set, an admin GET on `/admin/restaurants/restaurant/<id>/change/` followed by a POST to the fetch-attributes endpoint produces a panel containing a `michelin_status` row when the restaurant matches the fixture.
-- [ ] run full test suite: `uv run manage.py test`.
-- [ ] run linter if the project has one configured (check `pyproject.toml`); fix any issues.
+- [x] add a smoke test: with the test fixture CSV path set, an admin GET on `/admin/restaurants/restaurant/<id>/change/` followed by a POST to the fetch-attributes endpoint produces a panel containing a `michelin_status` row when the restaurant matches the fixture. (Added `MichelinFetchAttributesPanelTests` in `restaurants/tests/test_main.py`; pins `MICHELIN_CSV_PATH` to the fixture, disables Google Places via empty API key, asserts the rendered panel contains a `data-target="id_michelin_status"` row with the expected proposed value and source label.)
+- [x] run full test suite: `uv run manage.py test`. (71 tests, all passing.)
+- [x] run linter if the project has one configured (check `pyproject.toml`); fix any issues. (No linter configured in `pyproject.toml` — only runtime deps are listed; nothing to run.)
 
 ### Task 9: [Final] Update documentation
 - [ ] update `README.md`:
