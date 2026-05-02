@@ -13,3 +13,4 @@ terraform/terraform.tfvars
 ansible/inventory.ini
 ansible/secret_key
 ansible/secrets.yml
+michelin_my_maps.csv

@@ -122,3 +122,7 @@ SSH into the server and use `docker exec` to run Django management commands insi
 ssh ec2-user@<elastic-ip>
 sudo docker exec -it restaurants python manage.py <command>
 ```
+
+#### Michelin Restaurants Dataset
+
+Download `michelin_my_maps.csv` from https://www.kaggle.com/datasets/ngshiheng/michelin-guide-restaurants-2021. Credits to the dataset author and Michelin.
