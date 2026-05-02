@@ -4,12 +4,12 @@ from urllib.parse import urlencode
 from django.db import models
 from django.db.models import Case, IntegerField, Value, When
 from django.db.models.functions import Lower
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from .models import City, Restaurant
 
-DEFAULT_CITY_SLUG = "dublin"
 DEFAULT_SORT = "-rating,name"
 
 # Defaults for the visibility checkboxes. The template emits these as data-default
@@ -71,7 +71,10 @@ def _michelin_filter_choices():
 
 
 def index(request):
-    return redirect("restaurant_list", city_slug=DEFAULT_CITY_SLUG)
+    city = City.get_default() or City.objects.first()
+    if city is None:
+        raise Http404("No cities configured")
+    return redirect("restaurant_list", city_slug=city.slug)
 
 
 def restaurant_detail(request, city_slug, pk):

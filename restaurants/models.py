@@ -21,12 +21,28 @@ class City(models.Model):
     bbox_max_lon = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     bbox_max_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
+    is_default = models.BooleanField(
+        default=False,
+        help_text="Used as the landing city and pre-filled in the admin add form.",
+    )
+
     class Meta:
         ordering = ["name"]
         verbose_name_plural = "cities"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["is_default"],
+                condition=models.Q(is_default=True),
+                name="one_default_city",
+            ),
+        ]
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    def get_default(cls):
+        return cls.objects.filter(is_default=True).first()
 
     @property
     def has_bbox(self):

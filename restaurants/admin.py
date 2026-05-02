@@ -98,6 +98,13 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
         "force_update_michelin_status",
     ]
 
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        default = City.get_default()
+        if default is not None:
+            initial.setdefault("city", default.pk)
+        return initial
+
     def get_urls(self):
         urls = super().get_urls()
         custom = [
@@ -211,10 +218,10 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(City)
 class CityAdmin(admin.ModelAdmin):
-    list_display = ["name", "slug"]
+    list_display = ["name", "slug", "is_default"]
     prepopulated_fields = {"slug": ("name",)}
     fieldsets = [
-        (None, {"fields": ["name", "slug"]}),
+        (None, {"fields": ["name", "slug", "is_default"]}),
         ("Map bounding box", {
             "fields": ["bbox_min_lon", "bbox_min_lat", "bbox_max_lon", "bbox_max_lat"],
             "description": (
@@ -224,6 +231,13 @@ class CityAdmin(admin.ModelAdmin):
         }),
     ]
     actions = ["fetch_tiles"]
+
+    def save_model(self, request, obj, form, change):
+        # Flip off any previous default so the partial unique constraint
+        # stays satisfied when an admin user picks a new default city.
+        if obj.is_default:
+            City.objects.exclude(pk=obj.pk).filter(is_default=True).update(is_default=False)
+        super().save_model(request, obj, form, change)
 
     @admin.action(description="Fetch map tiles")
     def fetch_tiles(self, request, queryset):
