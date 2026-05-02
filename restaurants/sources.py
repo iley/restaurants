@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Callable, Optional
 
+from .places import google_places_source
+
 # Fields any source may provide. Single source of truth used by `fetch_all`
 # (which fields to merge) and by the admin view (which POST values to read as
 # the user's "current" values).
@@ -69,9 +71,10 @@ def apply_fetched(
 ) -> list[str]:
     """Write fetched values onto a restaurant.
 
-    Default mode only fills blank fields. With `force=True`, any field whose
-    fetched value differs from the current value is overwritten. Returns the
-    list of fields that were actually changed (suitable for `update_fields`).
+    Default mode only fills blank fields with non-empty values. With `force=True`,
+    any field whose fetched value differs from the current value is overwritten.
+    Returns the list of fields that were actually changed (suitable for
+    `update_fields`).
     """
     updated: list[str] = []
     for field, fv in fetched.items():
@@ -82,7 +85,7 @@ def apply_fetched(
                 setattr(restaurant, field, value)
                 updated.append(field)
         else:
-            if current in (None, ""):
+            if current in (None, "") and not _is_empty(value):
                 setattr(restaurant, field, value)
                 updated.append(field)
     return updated
@@ -113,12 +116,4 @@ def fetch_all(probe: Probe, sources: Optional[list] = None) -> dict[str, Fetched
     return merged
 
 
-# Registry. Imported lazily inside the function to avoid a circular import
-# (places.py needs nothing from sources.py, but keeping the import here makes
-# the registration explicit and easy to extend with future sources).
-def _build_default_sources() -> list[Source]:
-    from .places import google_places_source
-    return [google_places_source]
-
-
-SOURCES: list[Source] = _build_default_sources()
+SOURCES: list[Source] = [google_places_source]

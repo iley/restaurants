@@ -110,17 +110,17 @@ class ApplyFetchedTests(TestCase):
 
 
 @override_settings(GOOGLE_PLACES_API_KEY="test-key")
-class BulkActionUpdateFieldsParityTests(TestCase):
-    """Confirm the bulk admin action and management command produce the same
-    update_fields set as the legacy code path for representative inputs.
-    """
+class BulkApplyTests(TestCase):
+    """Cover apply_fetched semantics for the inputs the bulk admin action and
+    management command pass it: full payloads against blank and partial
+    restaurants in default and force modes."""
 
     PAYLOAD = {
         "google_place_id": "ChIJabc",
         "address": "1 Main St, Dublin",
         "website": "https://example.com",
         "google_maps_url": "https://maps.google.com/?cid=1",
-        "google_rating": 4.5,
+        "google_rating": Decimal("4.5"),
         "latitude": Decimal("53.3498"),
         "longitude": Decimal("-6.2603"),
     }
@@ -133,31 +133,35 @@ class BulkActionUpdateFieldsParityTests(TestCase):
             address="kept", website="",
         )
 
-    def test_apply_fetched_matches_legacy_blank_field_merge(self):
-        # On a wholly-blank restaurant, blank-field merge fills every fetchable field.
+    def test_blank_field_merge_fills_every_fetchable_field(self):
         fetched = self._build_fetched(self.PAYLOAD)
         updated = apply_fetched(self.blank, fetched)
         self.assertEqual(set(updated), set(FETCHABLE_FIELDS))
 
-    def test_apply_fetched_skips_non_blank_fields_by_default(self):
-        # On a partially-populated restaurant, address is preserved; the rest fills in.
+    def test_default_mode_skips_non_blank_fields(self):
         fetched = self._build_fetched(self.PAYLOAD)
         updated = apply_fetched(self.partial, fetched)
         expected = set(FETCHABLE_FIELDS) - {"address"}
         self.assertEqual(set(updated), expected)
         self.assertEqual(self.partial.address, "kept")
 
-    def test_apply_fetched_force_overwrites_address(self):
+    def test_force_overwrites_non_blank_fields(self):
         fetched = self._build_fetched(self.PAYLOAD)
         updated = apply_fetched(self.partial, fetched, force=True)
         self.assertIn("address", updated)
         self.assertEqual(self.partial.address, "1 Main St, Dublin")
 
     def test_management_command_routes_through_fetch_all(self):
-        """Smoke test: command runs end-to-end with a stubbed source and saves the expected fields."""
-        stub = _stub_source(self.PAYLOAD, name="Google Places")
+        stub_calls = []
+
+        def stub(probe):
+            stub_calls.append(probe)
+            return self.PAYLOAD
+
+        stub.source_name = "Google Places"
         with patch("restaurants.sources.SOURCES", [stub]):
             call_command("fetch_places_data", "--city", "dublin")
+        self.assertTrue(stub_calls, "stubbed source was not invoked")
         self.blank.refresh_from_db()
         self.assertEqual(self.blank.address, "1 Main St, Dublin")
         self.assertEqual(self.blank.website, "https://example.com")
@@ -165,6 +169,42 @@ class BulkActionUpdateFieldsParityTests(TestCase):
 
     def _build_fetched(self, payload):
         return {k: FetchedValue(value=v, source_name="stub") for k, v in payload.items()}
+
+
+class GooglePlacesSourceTests(TestCase):
+    def setUp(self):
+        self.probe = Probe(name="Test", city_name="Dublin")
+
+    def test_returns_none_without_api_key(self):
+        from restaurants.places import google_places_source
+        with override_settings(GOOGLE_PLACES_API_KEY=""):
+            self.assertIsNone(google_places_source(self.probe))
+
+    def test_propagates_none_from_search_place(self):
+        from restaurants.places import google_places_source
+        with override_settings(GOOGLE_PLACES_API_KEY="k"), \
+             patch("restaurants.places.search_place", return_value=None):
+            self.assertIsNone(google_places_source(self.probe))
+
+    def test_remaps_keys_and_coerces_floats_to_decimal(self):
+        from restaurants.places import google_places_source
+        raw = {
+            "place_id": "ChIJ123",
+            "address": "1 Main St",
+            "website": "https://example.com",
+            "google_maps_url": "https://maps.google.com/?cid=1",
+            "google_rating": 4.3,  # float from JSON
+            "latitude": 53.3498,
+            "longitude": -6.2603,
+        }
+        with override_settings(GOOGLE_PLACES_API_KEY="k"), \
+             patch("restaurants.places.search_place", return_value=raw):
+            result = google_places_source(self.probe)
+        self.assertEqual(result["google_place_id"], "ChIJ123")
+        # Floats must arrive as Decimals matching the model's DecimalField storage.
+        self.assertEqual(result["google_rating"], Decimal("4.3"))
+        self.assertEqual(result["latitude"], Decimal("53.3498"))
+        self.assertEqual(result["longitude"], Decimal("-6.2603"))
 
 
 class FetchAttributesViewTests(TestCase):
@@ -221,6 +261,22 @@ class FetchAttributesViewTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertNotContains(resp, 'data-target="id_address"')
         self.assertContains(resp, 'data-target="id_website"')
+
+    def test_post_treats_numerically_equal_decimals_as_unchanged(self):
+        # Form posts the model's DecimalField as a padded string ("53.349800"),
+        # while a fresh fetch yields Decimal("53.3498") — same number, different
+        # string form. The unchanged-row check must compare numerically.
+        fetched = {
+            "latitude": FetchedValue(value=Decimal("53.3498"), source_name="Google Places"),
+        }
+        with patch("restaurants.admin.fetch_all", return_value=fetched):
+            resp = self.client.post(self.url, {
+                "name": "Test", "city": str(self.city.pk),
+                "latitude": "53.349800",
+            })
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, 'data-target="id_latitude"')
+        self.assertContains(resp, "No proposed changes.")
 
     def test_post_no_proposals_renders_empty_message(self):
         with patch("restaurants.admin.fetch_all", return_value={}):

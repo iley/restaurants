@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 
 import requests
 from django.conf import settings
@@ -53,12 +54,21 @@ def search_place(name: str, city: str, api_key: str, location: str = "") -> dict
     }
 
 
+def _to_decimal(value):
+    # Google Places returns numeric fields as JSON numbers (Python floats).
+    # Coerce via str() so the value matches the model's DecimalField storage
+    # exactly — direct float->Decimal would carry binary-fp drift, causing
+    # spurious "changed" flags on re-fetch.
+    if value is None:
+        return None
+    return Decimal(str(value))
+
+
 def google_places_source(probe) -> dict | None:
     """Adapter that exposes Google Places to the sources registry.
 
-    Returns a dict keyed by Restaurant field names (`google_place_id`, ...)
-    rather than the legacy `place_id` key, so values flow into `fetch_all`
-    without re-mapping.
+    Returns a dict keyed by Restaurant field names so values flow into
+    `fetch_all` without re-mapping.
     """
     api_key = settings.GOOGLE_PLACES_API_KEY
     if not api_key:
@@ -71,40 +81,10 @@ def google_places_source(probe) -> dict | None:
         "address": data.get("address", ""),
         "website": data.get("website", ""),
         "google_maps_url": data.get("google_maps_url", ""),
-        "google_rating": data.get("google_rating"),
-        "latitude": data.get("latitude"),
-        "longitude": data.get("longitude"),
+        "google_rating": _to_decimal(data.get("google_rating")),
+        "latitude": _to_decimal(data.get("latitude")),
+        "longitude": _to_decimal(data.get("longitude")),
     }
 
 
 google_places_source.source_name = "Google Places"
-
-
-def apply_place_data(restaurant, data: dict, force: bool = False) -> list[str]:
-    """Apply place data to a restaurant.
-
-    By default only fills blank fields. With force=True, overwrites all fields.
-    Returns a list of field names that were updated.
-    """
-    field_map = {
-        "google_place_id": "place_id",
-        "address": "address",
-        "website": "website",
-        "google_maps_url": "google_maps_url",
-        "google_rating": "google_rating",
-        "latitude": "latitude",
-        "longitude": "longitude",
-    }
-    updated = []
-    for model_field, data_key in field_map.items():
-        current = getattr(restaurant, model_field)
-        value = data.get(data_key)
-        if force:
-            if value != current:
-                setattr(restaurant, model_field, value)
-                updated.append(model_field)
-        else:
-            if current in (None, "") and value:
-                setattr(restaurant, model_field, value)
-                updated.append(model_field)
-    return updated

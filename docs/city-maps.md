@@ -58,7 +58,7 @@ Add `places.location` to the field mask in `places.py`. The API returns:
 {"location": {"latitude": 53.349805, "longitude": -6.260310}}
 ```
 
-The existing `apply_place_data` fill-in-the-blanks logic handles the new fields
+The existing `apply_fetched` fill-in-the-blanks logic handles the new fields
 naturally: a normal (non-force) fetch will populate `latitude`/`longitude` only
 on restaurants where they're currently null, leaving all other fields untouched.
 
@@ -213,8 +213,8 @@ the map.
 ## Implementation Order
 
 1. **Model changes** — add bbox to City, add lat/lng to Restaurant. Migrate.
-2. **Google Places** — extend field mask, update `apply_place_data`. Re-fetch
-   data.
+2. **Google Places** — extend field mask, update `google_places_source` /
+   `FETCHABLE_FIELDS`. Re-fetch data.
 3. **Tile infrastructure** — `fetch_tiles` management command, admin action,
    nginx config, Ansible changes.
 4. **Vendor static assets** — download and commit MapLibre GL JS, pmtiles.js,

@@ -1,4 +1,3 @@
-import logging
 import subprocess
 import sys
 from decimal import Decimal, InvalidOperation
@@ -13,8 +12,6 @@ from django.urls import path
 from .models import City, Photo, Restaurant, Tag, Visit
 from .sources import FETCHABLE_FIELDS, Probe, apply_fetched, fetch_all
 
-logger = logging.getLogger(__name__)
-
 
 def _parse_decimal(value):
     if not value:
@@ -23,6 +20,22 @@ def _parse_decimal(value):
         return Decimal(value)
     except (InvalidOperation, ValueError):
         return None
+
+
+def _values_equal(current, proposed):
+    """Compare a POSTed string to a fetched value for the unchanged-row check.
+
+    Numeric fields (Decimal/float) need numeric comparison: a form input may
+    render `Decimal('53.349800')` as the string `"53.349800"` while a fresh
+    fetch produces `Decimal('53.3498')`, which is the same number. Falling back
+    to string compare for everything else keeps the simple cases simple.
+    """
+    if isinstance(proposed, (Decimal, float, int)) and not isinstance(proposed, bool):
+        try:
+            return Decimal(str(current).strip()) == Decimal(str(proposed))
+        except (InvalidOperation, ValueError):
+            return False
+    return str(current).strip() == str(proposed).strip()
 
 
 class VisitInline(admin.TabularInline):
@@ -108,7 +121,7 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
         for field, fv in fetched.items():
             current_val = current.get(field, "")
             proposed_val = fv.value
-            if str(current_val).strip() == str(proposed_val).strip():
+            if _values_equal(current_val, proposed_val):
                 continue
             rows.append({
                 "field": field,
