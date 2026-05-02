@@ -1,8 +1,10 @@
 from decimal import Decimal
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
+from django.urls import reverse
 
 from .models import City, Restaurant
 from .sources import (
@@ -163,3 +165,82 @@ class BulkActionUpdateFieldsParityTests(TestCase):
 
     def _build_fetched(self, payload):
         return {k: FetchedValue(value=v, source_name="stub") for k, v in payload.items()}
+
+
+class FetchAttributesViewTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+        User = get_user_model()
+        cls.staff = User.objects.create_user(
+            username="staff", password="pw", is_staff=True,
+        )
+        cls.url = reverse("admin:restaurants_restaurant_fetch_attributes")
+
+    def setUp(self):
+        self.client.force_login(self.staff)
+
+    def test_anonymous_user_redirected(self):
+        anon = Client()
+        resp = anon.post(self.url, {"name": "X", "city": self.city.pk})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_get_returns_405(self):
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 405)
+
+    def test_post_with_results_renders_rows(self):
+        fetched = {
+            "address": FetchedValue(value="1 Main St", source_name="Google Places"),
+            "website": FetchedValue(value="https://example.com", source_name="Google Places"),
+        }
+        with patch("restaurants.admin.fetch_all", return_value=fetched):
+            resp = self.client.post(self.url, {
+                "name": "Test", "city": str(self.city.pk), "location": "",
+                "address": "", "website": "",
+            })
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "1 Main St")
+        self.assertContains(resp, "https://example.com")
+        self.assertContains(resp, "Google Places")
+        self.assertContains(resp, 'data-target="id_address"')
+        self.assertContains(resp, "fetch-apply-all")
+
+    def test_post_hides_rows_where_current_equals_proposed(self):
+        fetched = {
+            "address": FetchedValue(value="1 Main St", source_name="Google Places"),
+            "website": FetchedValue(value="https://example.com", source_name="Google Places"),
+        }
+        with patch("restaurants.admin.fetch_all", return_value=fetched):
+            resp = self.client.post(self.url, {
+                "name": "Test", "city": str(self.city.pk),
+                "address": "1 Main St",  # equals proposed -> hidden
+                "website": "",
+            })
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, 'data-target="id_address"')
+        self.assertContains(resp, 'data-target="id_website"')
+
+    def test_post_no_proposals_renders_empty_message(self):
+        with patch("restaurants.admin.fetch_all", return_value={}):
+            resp = self.client.post(self.url, {
+                "name": "Test", "city": str(self.city.pk),
+            })
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "No proposed changes.")
+        self.assertNotContains(resp, "fetch-apply-all")
+
+    def test_post_with_blank_inputs_shows_friendly_message(self):
+        # No name -> we never call fetch_all; we ask the user to fill the form.
+        with patch("restaurants.admin.fetch_all") as mock_fetch:
+            resp = self.client.post(self.url, {"name": "", "city": str(self.city.pk)})
+            mock_fetch.assert_not_called()
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Enter a name")
+
+    def test_csrf_protection_enforced(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.staff)
+        resp = csrf_client.post(self.url, {"name": "X", "city": str(self.city.pk)})
+        self.assertEqual(resp.status_code, 403)

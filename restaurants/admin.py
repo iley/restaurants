@@ -1,16 +1,29 @@
 import logging
 import subprocess
 import sys
+from decimal import Decimal, InvalidOperation
 
 from adminsortable2.admin import SortableAdminBase, SortableTabularInline
 from django.conf import settings
 from django.contrib import admin
+from django.http import HttpResponseNotAllowed
+from django.template.response import TemplateResponse
+from django.urls import path
 
 from .models import City, Photo, Restaurant, Tag, Visit
 from .places import apply_place_data, search_place
-from .sources import Probe, apply_fetched, fetch_all
+from .sources import FETCHABLE_FIELDS, Probe, apply_fetched, fetch_all
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_decimal(value):
+    if not value:
+        return None
+    try:
+        return Decimal(value)
+    except (InvalidOperation, ValueError):
+        return None
 
 
 class VisitInline(admin.TabularInline):
@@ -47,6 +60,68 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
     filter_horizontal = ["tags"]
     inlines = [VisitInline, PhotoInline]
     actions = ["fetch_places_data", "force_fetch_places_data"]
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "fetch-attributes/",
+                self.admin_site.admin_view(self.fetch_attributes_view),
+                name="restaurants_restaurant_fetch_attributes",
+            ),
+        ]
+        return custom + urls
+
+    def fetch_attributes_view(self, request):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+
+        name = request.POST.get("name", "").strip()
+        city_pk = request.POST.get("city", "").strip()
+        location = request.POST.get("location", "").strip()
+
+        template = "admin/restaurants/restaurant/_fetch_results.html"
+        if not name or not city_pk:
+            return TemplateResponse(request, template, {
+                "rows": [],
+                "message": "Enter a name and select a city before fetching.",
+            })
+
+        try:
+            city = City.objects.get(pk=city_pk)
+        except (City.DoesNotExist, ValueError):
+            return TemplateResponse(request, template, {
+                "rows": [],
+                "message": "Selected city not found.",
+            })
+
+        probe = Probe(
+            name=name,
+            city_name=city.name,
+            location=location,
+            latitude=_parse_decimal(request.POST.get("latitude")),
+            longitude=_parse_decimal(request.POST.get("longitude")),
+        )
+        fetched = fetch_all(probe)
+
+        current = {f: request.POST.get(f, "") for f in FETCHABLE_FIELDS}
+        rows = []
+        for field, fv in fetched.items():
+            current_val = current.get(field, "")
+            proposed_val = fv.value
+            if str(current_val).strip() == str(proposed_val).strip():
+                continue
+            rows.append({
+                "field": field,
+                "label": field.replace("_", " ").title(),
+                "current": current_val,
+                "proposed": proposed_val,
+                "source_name": fv.source_name,
+                "input_id": f"id_{field}",
+            })
+
+        message = "" if rows else "No proposed changes."
+        return TemplateResponse(request, template, {"rows": rows, "message": message})
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)

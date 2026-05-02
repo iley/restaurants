@@ -1,0 +1,54 @@
+{% if message %}
+  <p class="fetch-results-message">{{ message }}</p>
+{% endif %}
+{% if rows %}
+  <div class="fetch-results-toolbar">
+    <button type="button" class="button fetch-apply-all">Apply all</button>
+  </div>
+  <table class="fetch-results-table">
+    <thead>
+      <tr>
+        <th>Field</th>
+        <th>Current</th>
+        <th>Proposed</th>
+        <th>Source</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in rows %}
+      <tr>
+        <th scope="row">{{ row.label }}</th>
+        <td class="fetch-current">{{ row.current|default:"—" }}</td>
+        <td class="fetch-proposed">{{ row.proposed }}</td>
+        <td class="fetch-source">{{ row.source_name }}</td>
+        <td>
+          <button type="button"
+                  class="button fetch-apply-one"
+                  data-target="{{ row.input_id }}"
+                  data-value="{{ row.proposed }}">Apply</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <script>
+  (function() {
+    var panel = document.getElementById('fetch-results');
+    if (!panel) return;
+    function apply(btn) {
+      var input = document.getElementById(btn.dataset.target);
+      if (input) input.value = btn.dataset.value;
+    }
+    panel.querySelectorAll('button.fetch-apply-one').forEach(function(btn) {
+      btn.addEventListener('click', function() { apply(btn); });
+    });
+    var all = panel.querySelector('button.fetch-apply-all');
+    if (all) {
+      all.addEventListener('click', function() {
+        panel.querySelectorAll('button.fetch-apply-one').forEach(apply);
+      });
+    }
+  })();
+  </script>
+{% endif %}

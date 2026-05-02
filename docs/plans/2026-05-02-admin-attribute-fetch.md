@@ -64,16 +64,16 @@ Existing bulk admin actions (`fetch_places_data`, `force_fetch_places_data`) sta
 - [x] run `uv run manage.py test restaurants` — must pass before Task 2.
 
 ### Task 2: Add the HTMX fetch endpoint
-- [ ] in `RestaurantAdmin.get_urls()`, register `path("fetch-attributes/", self.admin_site.admin_view(self.fetch_attributes_view), name="restaurants_restaurant_fetch_attributes")`.
-- [ ] implement `fetch_attributes_view(request)`:
+- [x] in `RestaurantAdmin.get_urls()`, register `path("fetch-attributes/", self.admin_site.admin_view(self.fetch_attributes_view), name="restaurants_restaurant_fetch_attributes")`.
+- [x] implement `fetch_attributes_view(request)`:
   - require POST; require `request.user.is_staff`.
   - read `name`, `city` (PK), `location` from POST. Build a `Probe`.
   - call `sources.fetch_all(probe)`.
   - read POSTed current values for each fetchable field (`address`, `website`, `google_maps_url`, `google_place_id`, `google_rating`, `latitude`, `longitude`).
   - render a partial (`templates/admin/restaurants/restaurant/_fetch_results.html`) with rows: field label · current value · proposed value · source · Apply button. Hide rows where current==proposed. Show a friendly message if no proposals.
-- [ ] in the partial, each Apply button uses HTMX OOB swap to replace the corresponding admin form input (`id_address`, `id_website`, …) with a new input pre-set to the proposed value. Also include an "Apply all" button at the top that swaps every changed field at once.
-- [ ] write tests for the view: 302/403 for anonymous user; 405 for GET; 200 with rows for a valid POST against a stubbed `fetch_all`; renders "no proposals" branch when `fetch_all` returns empty; CSRF protection holds (Django test client default).
-- [ ] run `uv run manage.py test restaurants` — must pass before Task 3.
+- [x] in the partial, each Apply button uses HTMX OOB swap to replace the corresponding admin form input (`id_address`, `id_website`, …) with a new input pre-set to the proposed value. Also include an "Apply all" button at the top that swaps every changed field at once. (Implemented with a small inline JS click handler that copies `data-value` onto the existing form input — same observable behaviour, no extra round-trip.)
+- [x] write tests for the view: 302/403 for anonymous user; 405 for GET; 200 with rows for a valid POST against a stubbed `fetch_all`; renders "no proposals" branch when `fetch_all` returns empty; CSRF protection holds (Django test client default).
+- [x] run `uv run manage.py test restaurants` — must pass before Task 3.
 
 ### Task 3: Wire the button into the admin change form
 - [ ] extend the existing `templates/admin/restaurants/restaurant/change_form.html` (do not rewrite — keep the photo dropzone intact):
