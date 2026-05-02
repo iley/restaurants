@@ -12,6 +12,11 @@ from .models import City, Restaurant
 DEFAULT_CITY_SLUG = "dublin"
 DEFAULT_SORT = "-rating,name"
 
+# Defaults for the visibility checkboxes. The template emits these as data-default
+# attributes so the URL-cleanup JS doesn't redeclare the same policy.
+DEFAULT_SHOW_VISITED = True
+DEFAULT_SHOW_WISHLIST = False
+
 # Single source of truth for sortable columns: order, labels, default direction.
 SORT_COLUMNS = [
     {"field": "name", "label": "Name", "default_dir": "asc"},
@@ -41,6 +46,13 @@ _RATING_TIER_RANK = Case(
 )
 
 _TEXT_FIELDS = {"name", "cuisine", "venue_category"}
+
+
+def _parse_checkbox_param(request, name, default):
+    raw = request.GET.get(name)
+    if raw is None:
+        return default
+    return raw == "1"
 
 
 def _michelin_filter_choices():
@@ -91,15 +103,9 @@ def restaurant_list(request, city_slug):
     rating_tier = request.GET.get("rating_tier", "")
 
     # Visibility checkboxes: visited (rating set) vs wishlist (rating null).
-    # On a fresh page load (no `vis` marker), show visited only. Once the
-    # filter form has been submitted, `vis=1` is present and the checkbox
-    # states become authoritative — including "neither checked".
-    if request.GET.get("vis"):
-        show_visited = request.GET.get("show_visited") == "1"
-        show_wishlist = request.GET.get("show_wishlist") == "1"
-    else:
-        show_visited = True
-        show_wishlist = False
+    # Absent params apply the defaults; "1"/"0" override.
+    show_visited = _parse_checkbox_param(request, "show_visited", DEFAULT_SHOW_VISITED)
+    show_wishlist = _parse_checkbox_param(request, "show_wishlist", DEFAULT_SHOW_WISHLIST)
 
     if show_visited and not show_wishlist:
         restaurants = restaurants.filter(rating__isnull=False)
@@ -152,13 +158,12 @@ def restaurant_list(request, city_slug):
     }
 
     # Build sort header links (preserve current filters in each link).
-    # Include visibility state so sorting doesn't reset the visited/wishlist toggle.
+    # Only carry visibility params when they differ from defaults — keeps URLs short.
     filter_params = {k: v for k, v in filters.items() if v}
-    filter_params["vis"] = "1"
-    if show_visited:
-        filter_params["show_visited"] = "1"
-    if show_wishlist:
-        filter_params["show_wishlist"] = "1"
+    if show_visited != DEFAULT_SHOW_VISITED:
+        filter_params["show_visited"] = "1" if show_visited else "0"
+    if show_wishlist != DEFAULT_SHOW_WISHLIST:
+        filter_params["show_wishlist"] = "1" if show_wishlist else "0"
     base_url = reverse("restaurant_list", kwargs={"city_slug": city.slug})
     sort_headers = _build_sort_headers(current_sort, filter_params, base_url)
 
@@ -194,6 +199,9 @@ def restaurant_list(request, city_slug):
         "show_wishlist": show_wishlist,
         "sort_headers": sort_headers,
         "current_sort_param": _sort_to_param(current_sort),
+        "default_sort_param": DEFAULT_SORT,
+        "default_show_visited": "1" if DEFAULT_SHOW_VISITED else "0",
+        "default_show_wishlist": "1" if DEFAULT_SHOW_WISHLIST else "0",
         "is_htmx": is_htmx,
         "view_mode": view_mode,
         "restaurants_json": restaurants_json,
@@ -247,10 +255,14 @@ def _build_sort_headers(current_sort, filter_params, base_url):
                 (f, d) for f, d in current_sort if f != field
             ]
 
-        params = {**filter_params, "sort": _sort_to_param(new_sort)}
+        params = dict(filter_params)
+        sort_str = _sort_to_param(new_sort)
+        if sort_str != DEFAULT_SORT:
+            params["sort"] = sort_str
+        qs = urlencode(params)
         headers.append({
             "label": col["label"],
-            "url": f"{base_url}?{urlencode(params)}",
+            "url": f"{base_url}?{qs}" if qs else base_url,
             "is_primary": is_primary,
             "direction": current_sort[0][1] if is_primary else None,
         })

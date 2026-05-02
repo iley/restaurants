@@ -21,18 +21,17 @@
       hx-target="#restaurant-content"
       hx-swap="innerHTML show:none focus-scroll:false"
       hx-push-url="true"
+      data-default-sort="{{ default_sort_param }}"
       class="mb-5">
   <input type="hidden" name="sort" id="sort-input" value="{{ current_sort_param }}">
   <input type="hidden" name="view" id="view-input" value="{% if view_mode == 'map' %}map{% endif %}">
-  {# `vis=1` marks the form as submitted so unchecked-both becomes distinguishable from a fresh page load. #}
-  <input type="hidden" name="vis" value="1">
   <div class="field is-grouped mb-3">
     <label class="checkbox mr-4">
-      <input type="checkbox" name="show_visited" value="1" {% if show_visited %}checked{% endif %}>
+      <input type="checkbox" name="show_visited" value="1" data-default="{{ default_show_visited }}" {% if show_visited %}checked{% endif %}>
       Visited
     </label>
     <label class="checkbox">
-      <input type="checkbox" name="show_wishlist" value="1" {% if show_wishlist %}checked{% endif %}>
+      <input type="checkbox" name="show_wishlist" value="1" data-default="{{ default_show_wishlist }}" {% if show_wishlist %}checked{% endif %}>
       Wishlist
     </label>
   </div>
@@ -120,6 +119,28 @@ function switchView(mode) {
   document.getElementById('tab-map').classList.toggle('is-active', mode === 'map');
   htmx.trigger(document.getElementById('filter-form'), 'change');
 }
+
+// Drop params that match form-declared defaults so HTMX URLs stay short.
+// Defaults come from data-default-sort on the form and data-default on each
+// checkbox — the server is the only place that declares them.
+function pruneFormParams(form, params) {
+  for (const key of Object.keys(params)) {
+    if (params[key] === '' || params[key] == null) delete params[key];
+  }
+  form.querySelectorAll('input[type="checkbox"][data-default]').forEach(box => {
+    const def = box.dataset.default;
+    // A default-on checkbox (default === its checked value) needs an explicit
+    // "0" when unchecked, since plain checkboxes just omit themselves.
+    if (!box.checked && def === box.value) params[box.name] = '0';
+    if (params[box.name] === def) delete params[box.name];
+  });
+  if (params.sort === form.dataset.defaultSort) delete params.sort;
+}
+
+const filterForm = document.getElementById('filter-form');
+filterForm.addEventListener('htmx:configRequest', function(e) {
+  pruneFormParams(filterForm, e.detail.parameters);
+});
 </script>
 
 <div id="restaurant-content">
