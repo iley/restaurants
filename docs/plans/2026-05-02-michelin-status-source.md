@@ -110,14 +110,14 @@ CSV updates are infrequent and semi-manual (the user re-downloads from Kaggle). 
 - [x] run tests — must pass before Task 4. (Updated two BulkApplyTests assertions that compared `set(updated)` to `set(FETCHABLE_FIELDS)`; PAYLOAD never included `michelin_status`, so the assertions now compare against `set(PAYLOAD.keys())`.)
 
 ### Task 4: Rename Places command, add `fetch_all_data`
-- [ ] rename `restaurants/management/commands/fetch_places_data.py` → `fetch_google_places_data.py`. Keep behavior identical: it must continue to call `fetch_all(probe, sources=[google_places_source])` to scope to Google Places only (so adding Michelin to `SOURCES` doesn't accidentally pull Michelin in).
-- [ ] add `restaurants/management/commands/fetch_all_data.py`:
+- [x] rename `restaurants/management/commands/fetch_places_data.py` → `fetch_google_places_data.py`. Keep behavior identical: it must continue to call `fetch_all(probe, sources=[google_places_source])` to scope to Google Places only (so adding Michelin to `SOURCES` doesn't accidentally pull Michelin in).
+- [x] add `restaurants/management/commands/fetch_all_data.py`:
   - Same `--city / --all / --force` flags.
   - Calls `fetch_all(probe, sources=LIVE_SOURCES)` where `LIVE_SOURCES = [google_places_source]` (defined in `sources.py`). Michelin is intentionally excluded.
   - Identical missing-fields filter shape to the Places command, except it should not include `michelin_status` in the "missing data" predicate.
-- [ ] in `restaurants/sources.py`, expose `LIVE_SOURCES = [google_places_source]` alongside `SOURCES`. The admin button continues to default to `SOURCES` (all sources, including Michelin).
-- [ ] update existing tests for the Places command to use the new name; add a parity test that `fetch_all_data` never writes `michelin_status` even when the Michelin source would have matched (assert by stubbing both sources and inspecting `update_fields`).
-- [ ] run tests — must pass before Task 5.
+- [x] in `restaurants/sources.py`, expose `LIVE_SOURCES = [google_places_source]` alongside `SOURCES`. The admin button continues to default to `SOURCES` (all sources, including Michelin).
+- [x] update existing tests for the Places command to use the new name; add a parity test that `fetch_all_data` never writes `michelin_status` even when the Michelin source would have matched (assert by stubbing both sources and inspecting `update_fields`). (Patched `google_places_source` in the command's namespace instead of `restaurants.sources.SOURCES` since the renamed command pins sources directly. New `FetchAllDataCommandTests` covers registry exclusion, command-level `update_fields` exclusion, and the missing-data predicate.)
+- [x] run tests — must pass before Task 5.
 
 ### Task 5: `update_michelin_data` command (diff + apply)
 - [ ] add `restaurants/management/commands/update_michelin_data.py`:

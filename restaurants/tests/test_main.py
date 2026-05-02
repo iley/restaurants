@@ -159,8 +159,11 @@ class BulkApplyTests(TestCase):
             return self.PAYLOAD
 
         stub.source_name = "Google Places"
-        with patch("restaurants.sources.SOURCES", [stub]):
-            call_command("fetch_places_data", "--city", "dublin")
+        with patch(
+            "restaurants.management.commands.fetch_google_places_data.google_places_source",
+            stub,
+        ):
+            call_command("fetch_google_places_data", "--city", "dublin")
         self.assertTrue(stub_calls, "stubbed source was not invoked")
         self.blank.refresh_from_db()
         self.assertEqual(self.blank.address, "1 Main St, Dublin")
@@ -169,6 +172,87 @@ class BulkApplyTests(TestCase):
 
     def _build_fetched(self, payload):
         return {k: FetchedValue(value=v, source_name="stub") for k, v in payload.items()}
+
+
+@override_settings(GOOGLE_PLACES_API_KEY="test-key")
+class FetchAllDataCommandTests(TestCase):
+    """The `fetch_all_data` command runs all live sources but must never write
+    `michelin_status` — Michelin is reviewed via `update_michelin_data`."""
+
+    PAYLOAD = {
+        "address": "1 Main St, Dublin",
+        "website": "https://example.com",
+        "google_place_id": "ChIJabc",
+    }
+
+    def setUp(self):
+        self.city = City.objects.create(name="Dublin", slug="dublin")
+        self.restaurant = Restaurant.objects.create(
+            city=self.city, name="Blank", cuisine="Italian",
+        )
+
+    def test_live_sources_excludes_michelin(self):
+        from restaurants.michelin import michelin_source
+        from restaurants.sources import LIVE_SOURCES
+        self.assertNotIn(michelin_source, LIVE_SOURCES)
+
+    def test_excludes_michelin_status_even_when_michelin_would_match(self):
+        google_stub = _stub_source(self.PAYLOAD, name="Google Places")
+        # The Michelin stub would return a status if it were ever called — its
+        # presence in the test scenario proves the exclusion is enforced by
+        # the command's source-list scope, not by an empty CSV.
+        michelin_stub = _stub_source(
+            {"michelin_status": Restaurant.MichelinStatus.ONE_STAR},
+            name="Michelin Guide",
+        )
+        self.assertEqual(
+            michelin_stub(None),
+            {"michelin_status": Restaurant.MichelinStatus.ONE_STAR},
+        )
+
+        captured: list[list[str]] = []
+        original_save = Restaurant.save
+
+        def capturing_save(instance, *args, **kwargs):
+            if "update_fields" in kwargs:
+                captured.append(list(kwargs["update_fields"]))
+            return original_save(instance, *args, **kwargs)
+
+        with patch(
+            "restaurants.management.commands.fetch_all_data.LIVE_SOURCES",
+            [google_stub],
+        ), patch.object(Restaurant, "save", capturing_save):
+            call_command("fetch_all_data", "--city", "dublin")
+
+        flat = [f for fields in captured for f in fields]
+        self.assertIn("address", flat, "google fields should be written")
+        self.assertNotIn("michelin_status", flat)
+
+    def test_missing_data_predicate_ignores_michelin_status(self):
+        # A restaurant with all live fields populated and `michelin_status` at
+        # the default "none" should be skipped by the default backfill — proves
+        # the missing-data filter doesn't include michelin_status.
+        Restaurant.objects.create(
+            city=self.city, name="Filled", cuisine="Italian",
+            address="x", website="https://x", google_maps_url="https://m",
+            google_place_id="pid", google_rating=Decimal("4.0"),
+            latitude=Decimal("53.0"), longitude=Decimal("-6.0"),
+        )
+        # The Blank one (set up above) is missing data and would be selected.
+        called_with: list[str] = []
+
+        def stub(probe):
+            called_with.append(probe.name)
+            return self.PAYLOAD
+
+        stub.source_name = "Google Places"
+        with patch(
+            "restaurants.management.commands.fetch_all_data.LIVE_SOURCES",
+            [stub],
+        ):
+            call_command("fetch_all_data")
+        self.assertIn("Blank", called_with)
+        self.assertNotIn("Filled", called_with)
 
 
 class GooglePlacesSourceTests(TestCase):

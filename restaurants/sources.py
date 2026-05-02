@@ -118,4 +118,8 @@ def fetch_all(probe: Probe, sources: Optional[list] = None) -> dict[str, Fetched
     return merged
 
 
+# LIVE_SOURCES are sources that hit external APIs and are safe to run on every
+# backfill. Michelin is excluded — it is driven by a local CSV and updates are
+# reviewed via the dedicated `update_michelin_data` command.
+LIVE_SOURCES: list[Source] = [google_places_source]
 SOURCES: list[Source] = [google_places_source, michelin_source]

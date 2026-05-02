@@ -4,11 +4,14 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 from restaurants.models import Restaurant
-from restaurants.sources import Probe, apply_fetched, fetch_all
+from restaurants.sources import LIVE_SOURCES, Probe, apply_fetched, fetch_all
 
 
 class Command(BaseCommand):
-    help = "Fetch Google Places data for restaurants missing any Places field"
+    help = (
+        "Fetch attribute data from all live external sources for restaurants "
+        "missing any field. Excludes Michelin status — use update_michelin_data."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -40,6 +43,9 @@ class Command(BaseCommand):
         if not options["fetch_all"] and not options["force"]:
             from django.db.models import Q
 
+            # michelin_status is intentionally not part of the missing-data
+            # predicate: it defaults to "none" and is managed by the dedicated
+            # update_michelin_data command.
             qs = qs.filter(
                 Q(address="")
                 | Q(website="")
@@ -61,7 +67,10 @@ class Command(BaseCommand):
         for i, restaurant in enumerate(restaurants, 1):
             prefix = f"[{i}/{total}] {restaurant.name}"
 
-            fetched = fetch_all(Probe.from_restaurant(restaurant))
+            fetched = fetch_all(
+                Probe.from_restaurant(restaurant),
+                sources=LIVE_SOURCES,
+            )
             if not fetched:
                 self.stdout.write(self.style.WARNING(f"{prefix} — not found"))
                 not_found += 1
@@ -78,7 +87,6 @@ class Command(BaseCommand):
                 self.stdout.write(f"{prefix} — skipped (all fields already set)")
                 skipped += 1
 
-            # Be polite to the API
             if i < total:
                 time.sleep(0.1)
 
