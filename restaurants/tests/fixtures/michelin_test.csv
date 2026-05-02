@@ -1,0 +1,12 @@
+Name,Address,Location,Price,Cuisine,Longitude,Latitude,PhoneNumber,Url,WebsiteUrl,Award,GreenStar,FacilitiesAndServices,Description
+"Patrick Guilbaud","21 Upper Merrion Street, Dublin, Ireland","Dublin City, Ireland","€€€€","Classic French",-6.252,53.337,+35316764192,https://example.com/pg,https://www.restaurantpatrickguilbaud.ie/,"2 Stars",0,"",Description of Patrick Guilbaud
+"Chapter One","18-19 Parnell Square North, Dublin, Ireland","Dublin City, Ireland","€€€€","Modern Cuisine",-6.265,53.354,+35318732266,https://example.com/c1,https://www.chapteronerestaurant.com/,"1 Star",0,"",Description of Chapter One
+"Bloom Brasserie","11 Upper Baggot Street, Dublin, Ireland","Dublin City, Ireland","€€€","Modern Cuisine",-6.241,53.331,+35316680037,https://example.com/bloom,https://www.bloombrasserie.ie/,"Bib Gourmand",0,"",Description of Bloom Brasserie
+"Forêt","Some Street, Dublin, Ireland","Dublin City, Ireland","€€","Modern Cuisine",-6.260,53.345,+35310000000,https://example.com/foret,https://example.com/foret,"Selected Restaurants",0,"",Description of Foret
+"The Old Spot","14 Bath Avenue, Dublin, Ireland","Dublin City, Ireland","€€","Traditional",-6.230,53.336,+35316605599,https://example.com/oldspot,https://www.theoldspot.ie/,"Selected Restaurants",0,"",Description of Old Spot
+"Twin Palms","123 Main Street, Madrid, Spain","Madrid, Spain","€€","Modern",-3.703,40.416,+34000000000,https://example.com/tp1,https://example.com/tp1,"1 Star",0,"",Madrid sister
+"DiSotto","Some Place, Cork, Ireland","Cork, Ireland","€€","Italian",-8.470,51.898,+353000000000,https://example.com/disotto,https://example.com/disotto,"Bib Gourmand",0,"",Cork entry
+"Aimsir","Estuary Road, Cliff at Lyons, Ireland","Cliff at Lyons, Ireland","€€€€","Creative",-6.667,53.282,+35316301400,https://example.com/aimsir,https://example.com/aimsir,"3 Stars",0,"",Tasting menu
+"Sister Cafe North","Northside, Dublin, Ireland","Dublin City, Ireland","€€","Modern",-6.260,53.355,+35311111111,https://example.com/scn,https://example.com/scn,"Bib Gourmand",0,"",Tiebreaker north
+"Sister Cafe South","Southside, Dublin, Ireland","Dublin City, Ireland","€€","Modern",-6.260,53.300,+35322222222,https://example.com/scs,https://example.com/scs,"Bib Gourmand",0,"",Tiebreaker south
+"Mystery Spot","Nowhere, Dublin, Ireland","Dublin City, Ireland","€€","Modern",-6.250,53.340,+35319999999,https://example.com/mystery,https://example.com/mystery,"Random Award",0,"",Unknown award row

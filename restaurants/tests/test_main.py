@@ -6,8 +6,8 @@ from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from .models import City, Restaurant
-from .sources import (
+from restaurants.models import City, Restaurant
+from restaurants.sources import (
     FETCHABLE_FIELDS,
     FetchedValue,
     Probe,

@@ -83,7 +83,7 @@ CSV updates are infrequent and semi-manual (the user re-downloads from Kaggle). 
 - [x] run `uv run manage.py test restaurants` — must pass before Task 2.
 
 ### Task 2: CSV loader and fuzzy matcher (`restaurants/michelin.py`)
-- [ ] create `restaurants/michelin.py` with:
+- [x] create `restaurants/michelin.py` with:
   - `_normalize(s: str) -> str`: NFKD-decompose, drop combining marks, lowercase, collapse whitespace, strip non-alphanumerics-except-spaces.
   - `_AWARD_TO_STATUS: dict[str, str]` mapping CSV award strings to `Restaurant.MichelinStatus` values (`"3 Stars"` → `THREE_STARS`, etc.). Unknown awards → not in dict (matcher skips).
   - `MichelinEntry` dataclass with: `name`, `normalized_name`, `name_tokens` (set), `city_normalized`, `latitude`, `longitude`, `status`.
@@ -93,10 +93,10 @@ CSV updates are infrequent and semi-manual (the user re-downloads from Kaggle). 
     - Score each candidate with `rapidfuzz.fuzz.token_set_ratio(probe.normalized_name, entry.normalized_name)`.
     - If both probe and entry have lat/lon: compute haversine distance; add a +5 bonus when ≤ 200 m, subtract 20 when > 5 km (cheap geo gating).
     - Accept best match if final score ≥ `MICHELIN_NAME_THRESHOLD` (88) AND gap to second-best ≥ `MICHELIN_AMBIGUITY_GAP` (5). Otherwise return `None`.
-- [ ] write tests covering every bullet from Testing Strategy → Unit tests for matching. Use a small fixture CSV (5–10 rows) under `restaurants/tests/fixtures/michelin_test.csv` to exercise real CSV parsing without depending on the gitignored production file. Override `MICHELIN_CSV_PATH` per-test.
-- [ ] write tests for the per-city cache: `_load_city` called twice for the same city reads the file only once (assert via a counted file-open wrapper or `mock.patch("builtins.open")`); called for two different cities reads the file twice; touching the file (new mtime) invalidates the cache for that city.
-- [ ] write tests for `_award_to_status` covering every `MichelinStatus` enum value plus an unknown award.
-- [ ] run tests — must pass before Task 3.
+- [x] write tests covering every bullet from Testing Strategy → Unit tests for matching. Use a small fixture CSV (5–10 rows) under `restaurants/tests/fixtures/michelin_test.csv` to exercise real CSV parsing without depending on the gitignored production file. Override `MICHELIN_CSV_PATH` per-test. (Converted `restaurants/tests.py` into a `restaurants/tests/` package with `test_main.py` + new `test_michelin.py` so the fixtures dir can live next to tests without colliding with the module name.)
+- [x] write tests for the per-city cache: `_load_city` called twice for the same city reads the file only once (assert via a counted file-open wrapper or `mock.patch("builtins.open")`); called for two different cities reads the file twice; touching the file (new mtime) invalidates the cache for that city.
+- [x] write tests for `_award_to_status` covering every `MichelinStatus` enum value plus an unknown award.
+- [x] run tests — must pass before Task 3.
 
 ### Task 3: Register `michelin_source` and extend `FETCHABLE_FIELDS`
 - [ ] in `restaurants/michelin.py`, add `def michelin_source(probe: Probe) -> dict | None`:
