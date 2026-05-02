@@ -26,6 +26,22 @@
 
 {% block form_top %}{{ block.super }}
 <div id="fetch-results" class="fetch-results-panel"></div>
+<script>
+(function() {
+    var form = document.getElementById('{{ opts.model_name }}_form');
+    if (!form) return;
+    form.addEventListener('submit', function(e) {
+        var panel = document.getElementById('fetch-results');
+        if (!panel) return;
+        var pending = panel.querySelectorAll('button.fetch-apply-one:not(:disabled)').length;
+        if (pending === 0) return;
+        var msg = pending === 1
+            ? 'There is 1 un-applied fetched change. Save anyway?'
+            : 'There are ' + pending + ' un-applied fetched changes. Save anyway?';
+        if (!confirm(msg)) e.preventDefault();
+    });
+})();
+</script>
 {% endblock %}
 
 {% block extrastyle %}{{ block.super }}
