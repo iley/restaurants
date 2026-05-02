@@ -255,6 +255,136 @@ class FetchAllDataCommandTests(TestCase):
         self.assertNotIn("Filled", called_with)
 
 
+class UpdateMichelinDataCommandTests(TestCase):
+    """The `update_michelin_data` command diffs Michelin CSV matches against
+    current values; default is dry-run, --apply writes only `michelin_status`."""
+
+    def setUp(self):
+        from io import StringIO
+
+        self.dublin = City.objects.create(name="Dublin", slug="dublin")
+        self.cork = City.objects.create(name="Cork", slug="cork")
+        # Three restaurants with three distinct outcomes:
+        #  - "Diff Me" currently NONE, source proposes ONE_STAR -> would change
+        #  - "Same" currently ONE_STAR, source proposes ONE_STAR -> unchanged
+        #  - "Lost" currently TWO_STARS, source returns no match -> demotion
+        self.diff_me = Restaurant.objects.create(
+            city=self.dublin, name="Diff Me", cuisine="Italian",
+            michelin_status=Restaurant.MichelinStatus.NONE,
+        )
+        self.same = Restaurant.objects.create(
+            city=self.dublin, name="Same", cuisine="Italian",
+            michelin_status=Restaurant.MichelinStatus.ONE_STAR,
+        )
+        self.lost = Restaurant.objects.create(
+            city=self.dublin, name="Lost", cuisine="Italian",
+            michelin_status=Restaurant.MichelinStatus.TWO_STARS,
+        )
+        self.stdout_buf = StringIO()
+
+    def _michelin_stub(self):
+        # Returns proposed status keyed by restaurant name; None means no match.
+        proposals = {
+            "Diff Me": {"michelin_status": Restaurant.MichelinStatus.ONE_STAR},
+            "Same": {"michelin_status": Restaurant.MichelinStatus.ONE_STAR},
+            "Lost": None,
+        }
+
+        def stub(probe):
+            return proposals.get(probe.name)
+
+        stub.source_name = "Michelin Guide"
+        return stub
+
+    def _run(self, *args):
+        with patch(
+            "restaurants.management.commands.update_michelin_data.michelin_source",
+            self._michelin_stub(),
+        ):
+            call_command("update_michelin_data", *args, stdout=self.stdout_buf)
+
+    def test_dry_run_writes_nothing(self):
+        self._run()
+        # DB must be untouched.
+        self.diff_me.refresh_from_db()
+        self.same.refresh_from_db()
+        self.lost.refresh_from_db()
+        self.assertEqual(self.diff_me.michelin_status, Restaurant.MichelinStatus.NONE)
+        self.assertEqual(self.same.michelin_status, Restaurant.MichelinStatus.ONE_STAR)
+        self.assertEqual(self.lost.michelin_status, Restaurant.MichelinStatus.TWO_STARS)
+
+    def test_dry_run_prints_diff_lines(self):
+        self._run()
+        out = self.stdout_buf.getvalue()
+        self.assertIn("Diff Me", out)
+        self.assertIn("WOULD CHANGE", out)
+        self.assertIn("Same", out)
+        self.assertIn("no change", out)
+        self.assertIn("Lost", out)
+        self.assertIn("no CSV match", out)
+        # Summary counts.
+        self.assertIn("1 would change", out)
+        self.assertIn("1 unchanged", out)
+        self.assertIn("1 no match", out)
+
+    def test_apply_writes_only_michelin_status(self):
+        captured: list[list[str]] = []
+        original_save = Restaurant.save
+
+        def capturing_save(instance, *args, **kwargs):
+            if "update_fields" in kwargs:
+                captured.append(list(kwargs["update_fields"]))
+            return original_save(instance, *args, **kwargs)
+
+        with patch.object(Restaurant, "save", capturing_save):
+            self._run("--apply")
+
+        # Only the diff_me restaurant should have been saved.
+        self.assertEqual(captured, [["michelin_status"]])
+        self.diff_me.refresh_from_db()
+        self.assertEqual(
+            self.diff_me.michelin_status,
+            Restaurant.MichelinStatus.ONE_STAR,
+        )
+        # Unchanged and no-match rows are still at their original status.
+        self.same.refresh_from_db()
+        self.lost.refresh_from_db()
+        self.assertEqual(self.same.michelin_status, Restaurant.MichelinStatus.ONE_STAR)
+        self.assertEqual(self.lost.michelin_status, Restaurant.MichelinStatus.TWO_STARS)
+
+    def test_no_match_path_classified(self):
+        # Restrict the queryset to just "Lost" via --city to isolate the path.
+        Restaurant.objects.exclude(pk=self.lost.pk).delete()
+        self._run()
+        out = self.stdout_buf.getvalue()
+        self.assertIn("[Lost] no CSV match", out)
+        self.assertIn("0 would change", out)
+        self.assertIn("0 unchanged", out)
+        self.assertIn("1 no match", out)
+
+    def test_city_filter_scopes_queryset(self):
+        # Add a Cork restaurant that the stub would propose a change for, then
+        # run with --city dublin and confirm Cork was not visited.
+        Restaurant.objects.create(
+            city=self.cork, name="Diff Me", cuisine="Italian",
+            michelin_status=Restaurant.MichelinStatus.NONE,
+        )
+        seen: list[str] = []
+
+        def stub(probe):
+            seen.append(probe.city_name)
+            return None
+
+        stub.source_name = "Michelin Guide"
+        with patch(
+            "restaurants.management.commands.update_michelin_data.michelin_source",
+            stub,
+        ):
+            call_command("update_michelin_data", "--city", "dublin", stdout=self.stdout_buf)
+        self.assertTrue(seen)
+        self.assertTrue(all(name == "Dublin" for name in seen))
+
+
 class GooglePlacesSourceTests(TestCase):
     def setUp(self):
         self.probe = Probe(name="Test", city_name="Dublin")

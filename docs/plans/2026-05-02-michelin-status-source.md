@@ -120,19 +120,19 @@ CSV updates are infrequent and semi-manual (the user re-downloads from Kaggle). 
 - [x] run tests — must pass before Task 5.
 
 ### Task 5: `update_michelin_data` command (diff + apply)
-- [ ] add `restaurants/management/commands/update_michelin_data.py`:
+- [x] add `restaurants/management/commands/update_michelin_data.py`:
   - Default mode (no flag): dry-run. Iterate restaurants (optionally `--city <slug>`); for each, run `fetch_all(probe, sources=[michelin_source])`; print one of:
     - `[name] no change (current: <status>)` — match returned same status.
     - `[name] WOULD CHANGE: <current> → <proposed>` — match returned different status.
     - `[name] no CSV match (current: <status>)` — useful for spotting demotions; the user manually fixes these.
   - With `--apply`: for each WOULD-CHANGE row, set `restaurant.michelin_status = proposed` and `save(update_fields=["michelin_status"])`. Print summary.
   - Print summary counts at end (`X would change`, `Y unchanged`, `Z no match`).
-- [ ] write tests:
+- [x] write tests:
   - dry-run prints diff and writes nothing (assert DB state unchanged).
   - `--apply` writes only `michelin_status` (assert `update_fields == ["michelin_status"]` via mocking `save`).
   - "no CSV match" path is correctly classified.
   - `--city` filter scopes the queryset.
-- [ ] run tests — must pass before Task 6.
+- [x] run tests — must pass before Task 6.
 
 ### Task 6: Admin actions split
 - [ ] in `restaurants/admin.py`:
