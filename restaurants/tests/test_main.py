@@ -325,13 +325,12 @@ class UpdateMichelinDataCommandTests(TestCase):
     def test_dry_run_prints_diff_lines(self):
         self._run()
         out = self.stdout_buf.getvalue()
+        # Only changed rows are printed; unchanged and no-match rows are quiet.
         self.assertIn("Diff Me", out)
         self.assertIn("WOULD CHANGE", out)
-        self.assertIn("Same", out)
-        self.assertIn("no change", out)
-        self.assertIn("Lost", out)
-        self.assertIn("no CSV match", out)
-        # Summary counts.
+        self.assertNotIn("Same", out)
+        self.assertNotIn("Lost", out)
+        # Summary counts still cover all three rows.
         self.assertIn("1 would change", out)
         self.assertIn("1 unchanged", out)
         self.assertIn("1 no match", out)
@@ -362,11 +361,11 @@ class UpdateMichelinDataCommandTests(TestCase):
         self.assertEqual(self.lost.michelin_status, Restaurant.MichelinStatus.TWO_STARS)
 
     def test_no_match_path_classified(self):
-        # Restrict the queryset to just "Lost" via --city to isolate the path.
+        # Restrict the queryset to just "Lost" to isolate the no-match path.
         Restaurant.objects.exclude(pk=self.lost.pk).delete()
         self._run()
         out = self.stdout_buf.getvalue()
-        self.assertIn("[Lost] no CSV match", out)
+        self.assertNotIn("Lost", out)
         self.assertIn("0 would change", out)
         self.assertIn("0 unchanged", out)
         self.assertIn("1 no match", out)

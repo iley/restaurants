@@ -63,17 +63,11 @@ class Command(BaseCommand):
 
             fv = fetched.get("michelin_status")
             if fv is None:
-                self.stdout.write(
-                    f"[{restaurant.name}] no CSV match (current: {current_label})"
-                )
                 no_match += 1
                 continue
 
             proposed = fv.value
             if proposed == current:
-                self.stdout.write(
-                    f"[{restaurant.name}] no change (current: {current_label})"
-                )
                 unchanged += 1
                 continue
 
