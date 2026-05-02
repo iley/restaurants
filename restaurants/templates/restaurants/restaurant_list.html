@@ -27,11 +27,11 @@
   <input type="hidden" name="view" id="view-input" value="{% if view_mode == 'map' %}map{% endif %}">
   <div class="field is-grouped mb-3">
     <label class="checkbox mr-4">
-      <input type="checkbox" name="show_visited" value="1" data-default="{{ default_show_visited }}" {% if show_visited %}checked{% endif %}>
+      <input type="checkbox" name="visited" value="1" data-default="{{ default_show_visited }}" {% if show_visited %}checked{% endif %}>
       Visited
     </label>
     <label class="checkbox">
-      <input type="checkbox" name="show_wishlist" value="1" data-default="{{ default_show_wishlist }}" {% if show_wishlist %}checked{% endif %}>
+      <input type="checkbox" name="wishlist" value="1" data-default="{{ default_show_wishlist }}" {% if show_wishlist %}checked{% endif %}>
       Wishlist
     </label>
   </div>
@@ -41,10 +41,10 @@
         <label class="label is-small">My Rating</label>
         <div class="control">
           <div class="select is-fullwidth">
-            <select name="rating_tier">
+            <select name="rating">
               <option value="">All</option>
               {% for value, label in rating_tiers.items %}
-                <option value="{{ value }}" {% if filters.rating_tier == value %}selected{% endif %}>{{ label }}</option>
+                <option value="{{ value }}" {% if filters.rating == value %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
             </select>
           </div>
@@ -71,10 +71,10 @@
         <label class="label is-small">Type</label>
         <div class="control">
           <div class="select is-fullwidth">
-            <select name="venue_category">
+            <select name="type">
               <option value="">All</option>
               {% for value, label in venue_categories %}
-                <option value="{{ value }}" {% if filters.venue_category == value %}selected{% endif %}>{{ label }}</option>
+                <option value="{{ value }}" {% if filters.type == value %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
             </select>
           </div>
@@ -86,10 +86,10 @@
         <label class="label is-small">Michelin Guide</label>
         <div class="control">
           <div class="select is-fullwidth">
-            <select name="michelin_status">
+            <select name="michelin">
               <option value="">All</option>
               {% for value, label in michelin_statuses %}
-                <option value="{{ value }}" {% if filters.michelin_status == value %}selected{% endif %}>{{ label }}</option>
+                <option value="{{ value }}" {% if filters.michelin == value %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
             </select>
           </div>

@@ -29,7 +29,7 @@
   </table>
 </div>
 <p class="has-text-grey is-size-7 mt-2">{{ restaurants|length }} restaurant{{ restaurants|length|pluralize }} shown</p>
-{% elif filters.cuisine or filters.venue_category or filters.rating_tier or filters.michelin_status or show_wishlist or not show_visited %}
+{% elif filters.cuisine or filters.type or filters.rating or filters.michelin or show_wishlist or not show_visited %}
 <p class="has-text-grey">No restaurants match the selected filters.</p>
 {% else %}
 <p class="has-text-grey">No restaurants yet for {{ city.name }}.</p>

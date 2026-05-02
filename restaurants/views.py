@@ -18,14 +18,16 @@ DEFAULT_SHOW_VISITED = True
 DEFAULT_SHOW_WISHLIST = False
 
 # Single source of truth for sortable columns: order, labels, default direction.
+# `field` is the URL-facing name; `db` is the underlying model field (defaults to `field`).
 SORT_COLUMNS = [
     {"field": "name", "label": "Name", "default_dir": "asc"},
     {"field": "rating", "label": "My Rating", "default_dir": "desc"},
     {"field": "cuisine", "label": "Cuisine", "default_dir": "asc"},
-    {"field": "venue_category", "label": "Type", "default_dir": "asc"},
-    {"field": "michelin_status", "label": "Michelin", "default_dir": "desc"},
+    {"field": "type", "db": "venue_category", "label": "Type", "default_dir": "asc"},
+    {"field": "michelin", "db": "michelin_status", "label": "Michelin", "default_dir": "desc"},
 ]
 _SORTABLE_FIELDS = {col["field"] for col in SORT_COLUMNS}
+_SORT_DB_FIELD = {col["field"]: col.get("db", col["field"]) for col in SORT_COLUMNS}
 
 # Michelin status has no natural DB ordering — map to numeric rank.
 _MICHELIN_RANK = Case(
@@ -45,7 +47,7 @@ _RATING_TIER_RANK = Case(
     output_field=IntegerField(),
 )
 
-_TEXT_FIELDS = {"name", "cuisine", "venue_category"}
+_TEXT_SORT_FIELDS = {"name", "cuisine", "type"}
 
 
 def _parse_checkbox_param(request, name, default):
@@ -98,14 +100,14 @@ def restaurant_list(request, city_slug):
 
     # Read filters from query params
     cuisine = request.GET.get("cuisine", "")
-    venue_category = request.GET.get("venue_category", "")
-    michelin_status = request.GET.get("michelin_status", "")
-    rating_tier = request.GET.get("rating_tier", "")
+    venue_category = request.GET.get("type", "")
+    michelin_status = request.GET.get("michelin", "")
+    rating_tier = request.GET.get("rating", "")
 
     # Visibility checkboxes: visited (rating set) vs wishlist (rating null).
     # Absent params apply the defaults; "1"/"0" override.
-    show_visited = _parse_checkbox_param(request, "show_visited", DEFAULT_SHOW_VISITED)
-    show_wishlist = _parse_checkbox_param(request, "show_wishlist", DEFAULT_SHOW_WISHLIST)
+    show_visited = _parse_checkbox_param(request, "visited", DEFAULT_SHOW_VISITED)
+    show_wishlist = _parse_checkbox_param(request, "wishlist", DEFAULT_SHOW_WISHLIST)
 
     if show_visited and not show_wishlist:
         restaurants = restaurants.filter(rating__isnull=False)
@@ -133,14 +135,14 @@ def restaurant_list(request, city_slug):
 
     order_by_args = []
     for f, d in current_sort:
-        if f == "michelin_status":
+        if f == "michelin":
             expr = _MICHELIN_RANK
         elif f == "rating":
             expr = _RATING_TIER_RANK
-        elif f in _TEXT_FIELDS:
-            expr = Lower(f)
+        elif f in _TEXT_SORT_FIELDS:
+            expr = Lower(_SORT_DB_FIELD[f])
         else:
-            expr = models.F(f)
+            expr = models.F(_SORT_DB_FIELD[f])
         order_by_args.append(expr.desc() if d == "desc" else expr.asc())
     restaurants = restaurants.order_by(*order_by_args)
 
@@ -152,18 +154,18 @@ def restaurant_list(request, city_slug):
 
     filters = {
         "cuisine": cuisine,
-        "venue_category": venue_category,
-        "michelin_status": michelin_status,
-        "rating_tier": rating_tier,
+        "type": venue_category,
+        "michelin": michelin_status,
+        "rating": rating_tier,
     }
 
     # Build sort header links (preserve current filters in each link).
     # Only carry visibility params when they differ from defaults — keeps URLs short.
     filter_params = {k: v for k, v in filters.items() if v}
     if show_visited != DEFAULT_SHOW_VISITED:
-        filter_params["show_visited"] = "1" if show_visited else "0"
+        filter_params["visited"] = "1" if show_visited else "0"
     if show_wishlist != DEFAULT_SHOW_WISHLIST:
-        filter_params["show_wishlist"] = "1" if show_wishlist else "0"
+        filter_params["wishlist"] = "1" if show_wishlist else "0"
     base_url = reverse("restaurant_list", kwargs={"city_slug": city.slug})
     sort_headers = _build_sort_headers(current_sort, filter_params, base_url)
 
