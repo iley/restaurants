@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Callable, Optional
 
+from .michelin import michelin_source
 from .places import google_places_source
 
 # Fields any source may provide. Single source of truth used by `fetch_all`
@@ -22,6 +23,7 @@ FETCHABLE_FIELDS = [
     "google_rating",
     "latitude",
     "longitude",
+    "michelin_status",
 ]
 
 
@@ -116,4 +118,4 @@ def fetch_all(probe: Probe, sources: Optional[list] = None) -> dict[str, Fetched
     return merged
 
 
-SOURCES: list[Source] = [google_places_source]
+SOURCES: list[Source] = [google_places_source, michelin_source]

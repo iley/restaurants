@@ -7,7 +7,7 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 
 from restaurants.models import Restaurant
-from restaurants.sources import Probe
+from restaurants.sources import FETCHABLE_FIELDS, Probe, fetch_all
 from restaurants import michelin
 from restaurants.michelin import (
     _AWARD_TO_STATUS,
@@ -15,6 +15,7 @@ from restaurants.michelin import (
     _load_city,
     _normalize,
     match,
+    michelin_source,
 )
 
 
@@ -163,6 +164,60 @@ class LoadCityCacheTests(TestCase):
     def test_missing_file_returns_empty_list(self):
         result = _load_city(Path("/nonexistent/michelin.csv"), "dublin")
         self.assertEqual(result, [])
+
+
+class MichelinSourceTests(TestCase):
+    def setUp(self):
+        _clear_cache()
+
+    def test_source_name_attribute(self):
+        self.assertEqual(michelin_source.source_name, "Michelin Guide")
+
+    def test_returns_michelin_status_only_when_matched(self):
+        with override_settings(MICHELIN_CSV_PATH=FIXTURE_CSV):
+            result = michelin_source(Probe(name="Patrick Guilbaud", city_name="Dublin"))
+        self.assertEqual(result, {"michelin_status": Restaurant.MichelinStatus.TWO_STARS})
+
+    def test_returns_none_when_no_match(self):
+        with override_settings(MICHELIN_CSV_PATH=FIXTURE_CSV):
+            result = michelin_source(Probe(name="Totally Unknown Place", city_name="Dublin"))
+        self.assertIsNone(result)
+
+    def test_returns_none_when_csv_missing(self):
+        with override_settings(MICHELIN_CSV_PATH=Path("/nonexistent/michelin.csv")):
+            result = michelin_source(Probe(name="Patrick Guilbaud", city_name="Dublin"))
+        self.assertIsNone(result)
+
+
+class FetchAllMergesMichelinAndPlacesTests(TestCase):
+    def test_merges_michelin_status_with_places_fields(self):
+        # Both sources contribute distinct fields; fetch_all should keep both.
+        def places_stub(probe):
+            return {
+                "address": "1 Main St",
+                "website": "https://example.com",
+            }
+        places_stub.source_name = "Google Places"
+
+        def michelin_stub(probe):
+            return {"michelin_status": Restaurant.MichelinStatus.ONE_STAR}
+        michelin_stub.source_name = "Michelin Guide"
+
+        probe = Probe(name="X", city_name="Dublin")
+        result = fetch_all(probe, sources=[places_stub, michelin_stub])
+
+        self.assertEqual(result["michelin_status"].value, Restaurant.MichelinStatus.ONE_STAR)
+        self.assertEqual(result["michelin_status"].source_name, "Michelin Guide")
+        self.assertEqual(result["address"].value, "1 Main St")
+        self.assertEqual(result["address"].source_name, "Google Places")
+        self.assertEqual(result["website"].value, "https://example.com")
+
+    def test_michelin_status_in_fetchable_fields(self):
+        self.assertIn("michelin_status", FETCHABLE_FIELDS)
+
+    def test_michelin_source_registered_in_default_sources(self):
+        from restaurants.sources import SOURCES
+        self.assertIn(michelin_source, SOURCES)
 
 
 class NormalizeTests(TestCase):

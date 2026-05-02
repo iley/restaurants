@@ -16,10 +16,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from typing import TYPE_CHECKING
+
 from rapidfuzz import fuzz
 
 from .models import Restaurant
-from .sources import Probe
+
+if TYPE_CHECKING:
+    from .sources import Probe
 
 MICHELIN_NAME_THRESHOLD = 88
 MICHELIN_AMBIGUITY_GAP = 5
@@ -128,7 +132,7 @@ def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * r * math.asin(math.sqrt(a))
 
 
-def match(probe: Probe) -> Optional[MichelinEntry]:
+def match(probe: "Probe") -> Optional[MichelinEntry]:
     """Return the best CSV entry matching `probe`, or None if uncertain."""
     from django.conf import settings
 
@@ -162,3 +166,14 @@ def match(probe: Probe) -> Optional[MichelinEntry]:
     if len(scored) > 1 and scored[0][0] - scored[1][0] < MICHELIN_AMBIGUITY_GAP:
         return None
     return scored[0][1]
+
+
+def michelin_source(probe: "Probe") -> Optional[dict]:
+    """Adapter exposing Michelin guide CSV matches to the sources registry."""
+    entry = match(probe)
+    if entry is None:
+        return None
+    return {"michelin_status": entry.status}
+
+
+michelin_source.source_name = "Michelin Guide"

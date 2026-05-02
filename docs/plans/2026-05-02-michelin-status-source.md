@@ -99,15 +99,15 @@ CSV updates are infrequent and semi-manual (the user re-downloads from Kaggle). 
 - [x] run tests — must pass before Task 3.
 
 ### Task 3: Register `michelin_source` and extend `FETCHABLE_FIELDS`
-- [ ] in `restaurants/michelin.py`, add `def michelin_source(probe: Probe) -> dict | None`:
+- [x] in `restaurants/michelin.py`, add `def michelin_source(probe: Probe) -> dict | None`:
   - Calls `match(probe)`; returns `None` if no match.
   - Otherwise returns `{"michelin_status": entry.status}`. Nothing else — Michelin is not authoritative for address/website/cuisine in our system.
-  - Set `michelin_source.source_name = "Michelin Guide"`.
-- [ ] in `restaurants/sources.py`, add `"michelin_status"` to `FETCHABLE_FIELDS`; append `michelin_source` to `SOURCES` (so the admin "Fetch attributes" button calls it by default).
-- [ ] write tests:
+  - Set `michelin_source.source_name = "Michelin Guide"`. (Probe import switched to `TYPE_CHECKING` to avoid the circular import sources.py ↔ michelin.py.)
+- [x] in `restaurants/sources.py`, add `"michelin_status"` to `FETCHABLE_FIELDS`; append `michelin_source` to `SOURCES` (so the admin "Fetch attributes" button calls it by default).
+- [x] write tests:
   - `michelin_source` shape (returns dict with only `michelin_status`, or `None`).
   - `fetch_all(probe)` with both Google Places and Michelin sources (stub one of each) returns merged dict containing `michelin_status` from Michelin and `address`/`website` from Places.
-- [ ] run tests — must pass before Task 4.
+- [x] run tests — must pass before Task 4. (Updated two BulkApplyTests assertions that compared `set(updated)` to `set(FETCHABLE_FIELDS)`; PAYLOAD never included `michelin_status`, so the assertions now compare against `set(PAYLOAD.keys())`.)
 
 ### Task 4: Rename Places command, add `fetch_all_data`
 - [ ] rename `restaurants/management/commands/fetch_places_data.py` → `fetch_google_places_data.py`. Keep behavior identical: it must continue to call `fetch_all(probe, sources=[google_places_source])` to scope to Google Places only (so adding Michelin to `SOURCES` doesn't accidentally pull Michelin in).

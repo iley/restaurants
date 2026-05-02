@@ -133,15 +133,15 @@ class BulkApplyTests(TestCase):
             address="kept", website="",
         )
 
-    def test_blank_field_merge_fills_every_fetchable_field(self):
+    def test_blank_field_merge_fills_every_payload_field(self):
         fetched = self._build_fetched(self.PAYLOAD)
         updated = apply_fetched(self.blank, fetched)
-        self.assertEqual(set(updated), set(FETCHABLE_FIELDS))
+        self.assertEqual(set(updated), set(self.PAYLOAD.keys()))
 
     def test_default_mode_skips_non_blank_fields(self):
         fetched = self._build_fetched(self.PAYLOAD)
         updated = apply_fetched(self.partial, fetched)
-        expected = set(FETCHABLE_FIELDS) - {"address"}
+        expected = set(self.PAYLOAD.keys()) - {"address"}
         self.assertEqual(set(updated), expected)
         self.assertEqual(self.partial.address, "kept")
 
