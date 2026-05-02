@@ -143,19 +143,20 @@ CSV updates are infrequent and semi-manual (the user re-downloads from Kaggle). 
 - [x] run tests — must pass before Task 7.
 
 ### Task 7: Wire CSV into Ansible deploy
-- [ ] in `ansible/group_vars/all.yml`, add `michelin_csv_dir: /opt/restaurants/data` and `michelin_csv_path: "{{ michelin_csv_dir }}/michelin_my_maps.csv"`.
-- [ ] in `ansible/playbook.yml`:
+- [x] in `ansible/group_vars/all.yml`, add `michelin_csv_dir: /opt/restaurants/data` and `michelin_csv_path: "{{ michelin_csv_dir }}/michelin_my_maps.csv"`.
+- [x] in `ansible/playbook.yml`:
   - extend the existing "Create data subdirectories" loop to also create `{{ michelin_csv_dir }}` (owner ec2-user, mode 0755).
   - add a `stat` task on the controller checking the local `data/michelin_my_maps.csv`; register the result.
   - add a `copy` task that uploads the local CSV to `{{ michelin_csv_path }}`, gated by `when: <stat>.stat.exists`. The `copy` module checksums and only transfers when content differs — a no-op deploy after a CSV update is one transfer; subsequent deploys are no-ops. Owner ec2-user, mode 0644.
   - if the local CSV is absent, log a `debug` message ("Skipping Michelin CSV upload — no local file") and continue. A fresh checkout without the CSV must not break the deploy.
   - ensure the CSV upload does NOT trigger a restaurants restart (the CSV is read at command-invocation time, not container start). No `notify:` line.
-- [ ] in `ansible/templates/restaurants.service.j2`:
+  - (also added) "Ensure Michelin CSV file exists" `touch` task before the upload, mirroring the existing db-file pattern, so Docker's bind-mount doesn't auto-create a directory at the source path on a fresh host without a local CSV.
+- [x] in `ansible/templates/restaurants.service.j2`:
   - add `-v {{ michelin_csv_path }}:/app/data/michelin_my_maps.csv:ro` to the `docker run` command.
   - add `-e MICHELIN_CSV_PATH=/app/data/michelin_my_maps.csv` to the env vars.
-- [ ] in `config/settings.py`, change `MICHELIN_CSV_PATH` to read from env first, falling back to `BASE_DIR / "data" / "michelin_my_maps.csv"`. Update the Task 1 smoke test accordingly.
-- [ ] write a test that `MICHELIN_CSV_PATH` honors the env var (use `override_settings` or set/unset env in the test).
-- [ ] run `uv run manage.py test restaurants` — must pass before Task 8.
+- [x] in `config/settings.py`, change `MICHELIN_CSV_PATH` to read from env first, falling back to `BASE_DIR / "data" / "michelin_my_maps.csv"`. Update the Task 1 smoke test accordingly. (Already in this shape from Task 1; no change needed. Smoke test still asserts default path components.)
+- [x] write a test that `MICHELIN_CSV_PATH` honors the env var (use `override_settings` or set/unset env in the test). (Reloads `config.settings` with `MICHELIN_CSV_PATH` set in `os.environ` and asserts the resolved path; reloads again to restore.)
+- [x] run `uv run manage.py test restaurants` — must pass before Task 8.
 
 ### Task 8: Verify acceptance criteria
 - [ ] verify all six behaviors from Overview:

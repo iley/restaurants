@@ -46,6 +46,45 @@
         - "{{ media_dir }}"
         - "{{ static_dir }}"
         - "{{ tiles_dir }}"
+        - "{{ michelin_csv_dir }}"
+
+    # Docker bind-mounts create missing paths as directories, but the CSV
+    # bind-mount needs a regular file. Touch it so the bind-mount works
+    # even on a fresh host without a local CSV uploaded.
+    - name: Ensure Michelin CSV file exists
+      file:
+        path: "{{ michelin_csv_path }}"
+        state: touch
+        owner: ec2-user
+        group: ec2-user
+        mode: "0644"
+        modification_time: preserve
+        access_time: preserve
+
+    # Upload the local Michelin CSV if present. The `copy` module checksums
+    # the file and only transfers when content differs, so subsequent deploys
+    # are no-ops. The CSV is read at command-invocation time, not container
+    # start, so this task intentionally does NOT notify Restart restaurants.
+    - name: Check for local Michelin CSV
+      stat:
+        path: "{{ playbook_dir }}/../data/michelin_my_maps.csv"
+      delegate_to: localhost
+      become: false
+      register: michelin_csv_local
+
+    - name: Upload Michelin CSV
+      copy:
+        src: "{{ playbook_dir }}/../data/michelin_my_maps.csv"
+        dest: "{{ michelin_csv_path }}"
+        owner: ec2-user
+        group: ec2-user
+        mode: "0644"
+      when: michelin_csv_local.stat.exists
+
+    - name: Skip Michelin CSV upload (no local file)
+      debug:
+        msg: "Skipping Michelin CSV upload — no local file at data/michelin_my_maps.csv"
+      when: not michelin_csv_local.stat.exists
 
     - name: Install Docker
       dnf:

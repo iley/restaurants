@@ -8,6 +8,8 @@ db_path: /opt/restaurants/db.sqlite3
 media_dir: /opt/restaurants/media
 static_dir: /opt/restaurants/static
 tiles_dir: /opt/restaurants/tiles
+michelin_csv_dir: /opt/restaurants/data
+michelin_csv_path: "{{ michelin_csv_dir }}/michelin_my_maps.csv"
 
 domain: restaurants.istrukov.com
 

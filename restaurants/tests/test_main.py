@@ -557,6 +557,20 @@ class MichelinCsvPathSettingTests(TestCase):
         self.assertEqual(path.name, "michelin_my_maps.csv")
         self.assertEqual(path.parent.name, "data")
 
+    def test_setting_honors_env_var(self):
+        import importlib
+        import os
+        from pathlib import Path
+
+        from config import settings as settings_module
+
+        with patch.dict(os.environ, {"MICHELIN_CSV_PATH": "/custom/michelin.csv"}):
+            reloaded = importlib.reload(settings_module)
+            try:
+                self.assertEqual(reloaded.MICHELIN_CSV_PATH, Path("/custom/michelin.csv"))
+            finally:
+                importlib.reload(settings_module)
+
 
 class _AdminActionTestBase(TestCase):
     @classmethod
