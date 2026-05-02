@@ -52,16 +52,16 @@ Existing bulk admin actions (`fetch_places_data`, `force_fetch_places_data`) sta
 ## Implementation Steps
 
 ### Task 1: Extract sources abstraction
-- [ ] create `restaurants/sources.py` with:
+- [x] create `restaurants/sources.py` with:
   - a small `Probe` dataclass (fields: `name`, `city_name`, `location`, `latitude`, `longitude`) — enough to query a source from either a saved `Restaurant` or unsaved form data.
   - a `Source` Protocol: `__call__(probe: Probe) -> dict[str, Any] | None`.
   - a module-level `SOURCES: list[Source]` registry (initially `[google_places_source]`).
   - `fetch_all(probe: Probe) -> dict[str, FetchedValue]` where `FetchedValue` carries `value` and `source_name`. Field-level merge: first source to provide a non-empty value wins (deterministic by `SOURCES` order). Skip `None`/empty values.
-- [ ] in `restaurants/places.py`, add a thin `google_places_source(probe) -> dict | None` that calls `search_place(probe.name, probe.city_name, settings.GOOGLE_PLACES_API_KEY, probe.location)`. Keep `search_place` and `apply_place_data` for the existing callers.
-- [ ] update `RestaurantAdmin.fetch_places_data` / `force_fetch_places_data` actions and the `fetch_places_data` management command to call `fetch_all` (build a `Probe` from the restaurant) instead of `search_place` directly. Behavior must be unchanged: blank-field merge by default, full overwrite under `--force` / "Re-fetch".
-- [ ] write tests for `fetch_all`: returns merged dict for a single source; first-non-empty merge across two stub sources; gracefully handles a source returning `None`.
-- [ ] write tests confirming the bulk action / management command still produce the same `update_fields` set as before for representative inputs (use a stubbed `google_places_source`).
-- [ ] run `uv run manage.py test restaurants` — must pass before Task 2.
+- [x] in `restaurants/places.py`, add a thin `google_places_source(probe) -> dict | None` that calls `search_place(probe.name, probe.city_name, settings.GOOGLE_PLACES_API_KEY, probe.location)`. Keep `search_place` and `apply_place_data` for the existing callers.
+- [x] update `RestaurantAdmin.fetch_places_data` / `force_fetch_places_data` actions and the `fetch_places_data` management command to call `fetch_all` (build a `Probe` from the restaurant) instead of `search_place` directly. Behavior must be unchanged: blank-field merge by default, full overwrite under `--force` / "Re-fetch".
+- [x] write tests for `fetch_all`: returns merged dict for a single source; first-non-empty merge across two stub sources; gracefully handles a source returning `None`.
+- [x] write tests confirming the bulk action / management command still produce the same `update_fields` set as before for representative inputs (use a stubbed `google_places_source`).
+- [x] run `uv run manage.py test restaurants` — must pass before Task 2.
 
 ### Task 2: Add the HTMX fetch endpoint
 - [ ] in `RestaurantAdmin.get_urls()`, register `path("fetch-attributes/", self.admin_site.admin_view(self.fetch_attributes_view), name="restaurants_restaurant_fetch_attributes")`.

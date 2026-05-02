@@ -8,6 +8,7 @@ from django.contrib import admin
 
 from .models import City, Photo, Restaurant, Tag, Visit
 from .places import apply_place_data, search_place
+from .sources import Probe, apply_fetched, fetch_all
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +68,7 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
         self._do_fetch_places(request, queryset, force=True)
 
     def _do_fetch_places(self, request, queryset, force):
-        api_key = settings.GOOGLE_PLACES_API_KEY
-        if not api_key:
+        if not settings.GOOGLE_PLACES_API_KEY:
             self.message_user(
                 request,
                 "GOOGLE_PLACES_API_KEY is not configured.",
@@ -78,11 +78,11 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
 
         updated = not_found = skipped = 0
         for restaurant in queryset.select_related("city"):
-            data = search_place(restaurant.name, restaurant.city.name, api_key, restaurant.location)
-            if data is None:
+            fetched = fetch_all(Probe.from_restaurant(restaurant))
+            if not fetched:
                 not_found += 1
                 continue
-            fields = apply_place_data(restaurant, data, force=force)
+            fields = apply_fetched(restaurant, fetched, force=force)
             if fields:
                 restaurant.save(update_fields=fields)
                 updated += 1

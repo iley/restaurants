@@ -1,6 +1,7 @@
 import logging
 
 import requests
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,33 @@ def search_place(name: str, city: str, api_key: str, location: str = "") -> dict
         "latitude": location.get("latitude"),
         "longitude": location.get("longitude"),
     }
+
+
+def google_places_source(probe) -> dict | None:
+    """Adapter that exposes Google Places to the sources registry.
+
+    Returns a dict keyed by Restaurant field names (`google_place_id`, ...)
+    rather than the legacy `place_id` key, so values flow into `fetch_all`
+    without re-mapping.
+    """
+    api_key = settings.GOOGLE_PLACES_API_KEY
+    if not api_key:
+        return None
+    data = search_place(probe.name, probe.city_name, api_key, probe.location)
+    if data is None:
+        return None
+    return {
+        "google_place_id": data.get("place_id", ""),
+        "address": data.get("address", ""),
+        "website": data.get("website", ""),
+        "google_maps_url": data.get("google_maps_url", ""),
+        "google_rating": data.get("google_rating"),
+        "latitude": data.get("latitude"),
+        "longitude": data.get("longitude"),
+    }
+
+
+google_places_source.source_name = "Google Places"
 
 
 def apply_place_data(restaurant, data: dict, force: bool = False) -> list[str]:

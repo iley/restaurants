@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 from restaurants.models import Restaurant
-from restaurants.places import apply_place_data, search_place
+from restaurants.sources import Probe, apply_fetched, fetch_all
 
 
 class Command(BaseCommand):
@@ -28,8 +28,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, **options):
-        api_key = settings.GOOGLE_PLACES_API_KEY
-        if not api_key:
+        if not settings.GOOGLE_PLACES_API_KEY:
             raise CommandError(
                 "GOOGLE_PLACES_API_KEY is not set. "
                 "Export it as an environment variable and try again."
@@ -62,13 +61,13 @@ class Command(BaseCommand):
         for i, restaurant in enumerate(restaurants, 1):
             prefix = f"[{i}/{total}] {restaurant.name}"
 
-            data = search_place(restaurant.name, restaurant.city.name, api_key, restaurant.location)
-            if data is None:
+            fetched = fetch_all(Probe.from_restaurant(restaurant))
+            if not fetched:
                 self.stdout.write(self.style.WARNING(f"{prefix} — not found"))
                 not_found += 1
                 continue
 
-            fields = apply_place_data(restaurant, data, force=options["force"])
+            fields = apply_fetched(restaurant, fetched, force=options["force"])
             if fields:
                 restaurant.save(update_fields=fields)
                 self.stdout.write(
