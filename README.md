@@ -66,7 +66,7 @@ The diff prints one line per restaurant: `no change`, `WOULD CHANGE: <current> â
 Production refresh: replace the local CSV, then `./deploy.sh` (Ansible uploads the CSV iff it changed; no container restart). Then SSH and apply against the prod DB:
 
 ```bash
-ssh ec2-user@<elastic-ip>
+ssh ubuntu@<elastic-ip>
 sudo docker exec -it restaurants python manage.py update_michelin_data           # review
 sudo docker exec -it restaurants python manage.py update_michelin_data --apply   # apply
 ```
@@ -156,11 +156,11 @@ Push to `main` -- GitHub Actions builds and pushes the Docker image to GHCR. The
 
 ```bash
 # Copy your local database to the server
-scp db.sqlite3 ec2-user@<elastic-ip>:~/db.sqlite3
-ssh ec2-user@<elastic-ip> "sudo mv ~/db.sqlite3 /opt/restaurants/db.sqlite3 && sudo systemctl restart restaurants"
+scp db.sqlite3 ubuntu@<elastic-ip>:~/db.sqlite3
+ssh ubuntu@<elastic-ip> "sudo mv ~/db.sqlite3 /opt/restaurants/db.sqlite3 && sudo systemctl restart restaurants"
 
 # Create a superuser
-ssh ec2-user@<elastic-ip>
+ssh ubuntu@<elastic-ip>
 sudo docker exec -it restaurants python manage.py createsuperuser
 ```
 
@@ -169,6 +169,6 @@ sudo docker exec -it restaurants python manage.py createsuperuser
 SSH into the server and use `docker exec` to run Django management commands inside the running container:
 
 ```bash
-ssh ec2-user@<elastic-ip>
+ssh ubuntu@<elastic-ip>
 sudo docker exec -it restaurants python manage.py <command>
 ```
