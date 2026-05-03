@@ -15,7 +15,10 @@ EOF
     echo "Created $SECRETS_FILE — edit it to add your Google Places API key."
 fi
 
-uvx --from ansible-core --with ansible ansible-playbook \
+uvx --from ansible-core ansible-galaxy collection install \
+    -r "$ANSIBLE_DIR/requirements.yml"
+
+uvx --from ansible-core ansible-playbook \
     -i "$ANSIBLE_DIR/inventory.ini" \
     "$ANSIBLE_DIR/playbook.yml" \
     --extra-vars "@$SECRETS_FILE" \
