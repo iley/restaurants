@@ -16,23 +16,8 @@ data "aws_vpc" "default" {
   default = true
 }
 
-data "aws_ami" "al2023_arm" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["al2023-ami-*-arm64"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
 # Canonical's official AWS account; Ubuntu 24.04 LTS (Noble) ARM64.
-data "aws_ami" "ubuntu_2404_arm" {
+data "aws_ami" "ubuntu_arm" {
   most_recent = true
   owners      = ["099720109477"]
 
@@ -88,6 +73,15 @@ resource "aws_security_group" "restaurants" {
   }
 }
 
+resource "aws_eip" "restaurants" {
+  instance = aws_instance.restaurants.id
+  domain   = "vpc"
+
+  tags = {
+    Name = "restaurants-eip"
+  }
+}
+
 resource "aws_ebs_volume" "data" {
   availability_zone = "${var.aws_region}a"
   size              = var.data_volume_size
@@ -99,7 +93,7 @@ resource "aws_ebs_volume" "data" {
 }
 
 resource "aws_instance" "restaurants" {
-  ami                    = data.aws_ami.al2023_arm.id
+  ami                    = data.aws_ami.ubuntu_arm.id
   instance_type          = var.instance_type
   key_name               = var.key_name
   vpc_security_group_ids = [aws_security_group.restaurants.id]
@@ -123,57 +117,6 @@ resource "aws_volume_attachment" "data" {
   device_name = "/dev/xvdf"
   volume_id   = aws_ebs_volume.data.id
   instance_id = aws_instance.restaurants.id
-}
-
-resource "aws_eip" "restaurants" {
-  instance = aws_instance.restaurants_ubuntu.id
-  domain   = "vpc"
-
-  tags = {
-    Name = "restaurants-eip"
-  }
-}
-
-# --- Ubuntu migration sibling resources ---
-# Temporary infrastructure for the AL2023 -> Ubuntu migration. After cutover
-# (EIP re-associated to restaurants_ubuntu, old host destroyed), rename these
-# to the canonical names and delete the AL2023 resources above.
-
-resource "aws_ebs_volume" "data_ubuntu" {
-  availability_zone = "${var.aws_region}a"
-  size              = var.data_volume_size
-  type              = "gp3"
-
-  tags = {
-    Name = "restaurants-data-ubuntu"
-  }
-}
-
-resource "aws_instance" "restaurants_ubuntu" {
-  ami                    = data.aws_ami.ubuntu_2404_arm.id
-  instance_type          = var.instance_type
-  key_name               = var.key_name
-  vpc_security_group_ids = [aws_security_group.restaurants.id]
-  availability_zone      = "${var.aws_region}a"
-
-  root_block_device {
-    volume_size = 10
-    volume_type = "gp3"
-  }
-
-  tags = {
-    Name = "restaurants-ubuntu"
-  }
-
-  lifecycle {
-    ignore_changes = [ami]
-  }
-}
-
-resource "aws_volume_attachment" "data_ubuntu" {
-  device_name = "/dev/xvdf"
-  volume_id   = aws_ebs_volume.data_ubuntu.id
-  instance_id = aws_instance.restaurants_ubuntu.id
 }
 
 # --- Backups ---
