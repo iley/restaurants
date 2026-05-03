@@ -71,14 +71,15 @@ def _michelin_filter_choices():
 
 
 def index(request):
-    city = City.get_default() or City.objects.first()
+    visible = City.objects.filter(hidden=False)
+    city = visible.filter(is_default=True).first() or visible.first()
     if city is None:
         raise Http404("No cities configured")
     return redirect("restaurant_list", city_slug=city.slug)
 
 
 def restaurant_detail(request, city_slug, pk):
-    city = get_object_or_404(City, slug=city_slug)
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
     restaurant = get_object_or_404(
         Restaurant.objects.prefetch_related("visits", "photos", "tags"),
         pk=pk,
@@ -90,14 +91,14 @@ def restaurant_detail(request, city_slug, pk):
     return render(request, "restaurants/restaurant_detail.html", {
         "restaurant": restaurant,
         "city": city,
-        "cities": City.objects.all(),
+        "cities": City.objects.filter(hidden=False),
         "visits": visits,
         "has_notes": has_notes,
     })
 
 
 def restaurant_list(request, city_slug):
-    city = get_object_or_404(City, slug=city_slug)
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
     base_qs = Restaurant.objects.filter(city=city, hidden=False).prefetch_related("tags")
     restaurants = base_qs
 
@@ -194,7 +195,7 @@ def restaurant_list(request, city_slug):
     context = {
         "city": city,
         "restaurants": restaurants,
-        "cities": City.objects.all(),
+        "cities": City.objects.filter(hidden=False),
         "cuisines": cuisines,
         "venue_categories": Restaurant.VenueCategory.choices,
         "michelin_statuses": _michelin_filter_choices(),

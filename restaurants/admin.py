@@ -254,10 +254,12 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(City)
 class CityAdmin(admin.ModelAdmin):
-    list_display = ["name", "slug", "is_default"]
+    list_display = ["name", "slug", "is_default", "hidden"]
+    list_filter = ["hidden"]
+    list_editable = ["hidden"]
     prepopulated_fields = {"slug": ("name",)}
     fieldsets = [
-        (None, {"fields": ["name", "slug", "is_default"]}),
+        (None, {"fields": ["name", "slug", "is_default", "hidden"]}),
         ("Map bounding box", {
             "fields": ["bbox_min_lon", "bbox_min_lat", "bbox_max_lon", "bbox_max_lat"],
             "description": (

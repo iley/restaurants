@@ -25,6 +25,7 @@ class City(models.Model):
         default=False,
         help_text="Used as the landing city and pre-filled in the admin add form.",
     )
+    hidden = models.BooleanField(default=False, help_text="Hide from the public site")
 
     class Meta:
         ordering = ["name"]
