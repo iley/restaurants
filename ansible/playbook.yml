@@ -9,6 +9,15 @@
         update_cache: true
         cache_valid_time: 3600
 
+    # Ubuntu prints a generated message-of-the-day on every SSH login (system
+    # info, package counts, ads). Comment out the pam_motd lines so logins are
+    # quiet. PAM config is re-read on each session, so no sshd restart needed.
+    - name: Disable dynamic MOTD on SSH login
+      replace:
+        path: /etc/pam.d/sshd
+        regexp: '^(session\s+optional\s+pam_motd\.so.*)$'
+        replace: '# \1'
+
     # --- EBS Volume ---
     # Nitro-based instances (t4g) expose EBS volumes as /dev/nvme*n1, not
     # the /dev/xvdf name requested in Terraform. We find the actual device,
@@ -91,6 +100,12 @@
       apt:
         name: docker.io
         state: present
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: true
 
     - name: Start and enable Docker
       systemd:
