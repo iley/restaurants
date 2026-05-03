@@ -100,9 +100,17 @@ class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
 
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
-        default = City.get_default()
-        if default is not None:
-            initial.setdefault("city", default.pk)
+        last_city_id = (
+            Restaurant.objects.order_by("-created_at")
+            .values_list("city_id", flat=True)
+            .first()
+        )
+        if last_city_id is not None:
+            initial.setdefault("city", last_city_id)
+        else:
+            default = City.get_default()
+            if default is not None:
+                initial.setdefault("city", default.pk)
         return initial
 
     def get_urls(self):
