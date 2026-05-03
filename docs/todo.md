@@ -2,7 +2,7 @@
 
 - [ ] Better way of handling different "cuisines"?
 - [ ] Better flow for dealing with errors when mass-updating Michelin status. Example: "Yakiniku Matsukawa" gets lumped together with "Matsukawa".
-- [ ] Match colors on Michelin icons
+- [x] Match colors on Michelin icons
 - [x] Warn when user forgets to click "Apply" on the admin edit page
 - [x] Pre-fill default city
 - [x] Auto-detect duplicates
