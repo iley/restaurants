@@ -1,0 +1,91 @@
+<div id="photos-section">
+  {% if photos %}
+    <div id="photos-grid" class="columns is-multiline">
+      {% for photo in photos %}
+        {% include "restaurants/_photo_card.html" with photo=photo %}
+      {% endfor %}
+    </div>
+    <p class="help">Drag photos to reorder.</p>
+  {% else %}
+    <p class="has-text-grey mb-4">No photos yet.</p>
+  {% endif %}
+
+  <h3 class="subtitle is-6 mt-4">Upload photo</h3>
+  <form id="photo-upload-form"
+        hx-post="{% url 'photo_upload' city_slug=city.slug pk=restaurant.pk %}"
+        hx-target="#photos-section"
+        hx-swap="outerHTML"
+        hx-encoding="multipart/form-data"
+        enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="field">
+      <label class="label is-small">Image</label>
+      <div class="control">
+        <input type="file" name="image" class="input" accept="image/*" required>
+      </div>
+      {% if photo_form.image.errors %}
+        <p class="help is-danger">{{ photo_form.image.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+    <div class="field">
+      <label class="label is-small">Caption</label>
+      <div class="control">
+        <input type="text"
+               name="caption"
+               class="input"
+               value="{{ photo_form.caption.value|default_if_none:'' }}"
+               placeholder="Caption (optional)"
+               maxlength="200">
+      </div>
+      {% if photo_form.caption.errors %}
+        <p class="help is-danger">{{ photo_form.caption.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+    <div class="field">
+      <div class="control">
+        <button type="submit" class="button is-primary">Upload</button>
+      </div>
+    </div>
+  </form>
+
+  <script>
+    (function () {
+      const grid = document.getElementById("photos-grid");
+      if (!grid) return;
+      let dragged = null;
+      grid.querySelectorAll(".photo-card").forEach(function (card) {
+        card.addEventListener("dragstart", function (e) {
+          dragged = card;
+          card.classList.add("is-dragging");
+          e.dataTransfer.effectAllowed = "move";
+        });
+        card.addEventListener("dragend", function () {
+          card.classList.remove("is-dragging");
+          dragged = null;
+          postOrder();
+        });
+        card.addEventListener("dragover", function (e) {
+          e.preventDefault();
+          if (!dragged || dragged === card) return;
+          const rect = card.getBoundingClientRect();
+          const before = (e.clientY - rect.top) < rect.height / 2;
+          grid.insertBefore(dragged, before ? card : card.nextSibling);
+        });
+      });
+      function postOrder() {
+        const ids = Array.from(grid.querySelectorAll(".photo-card")).map(function (c) {
+          return c.dataset.photoId;
+        });
+        const fd = new FormData();
+        ids.forEach(function (id) { fd.append("photo_ids", id); });
+        const csrf = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+        fetch("{% url 'photo_reorder' city_slug=city.slug pk=restaurant.pk %}", {
+          method: "POST",
+          headers: {"X-CSRFToken": csrf},
+          body: fd,
+          credentials: "same-origin",
+        });
+      }
+    })();
+  </script>
+</div>

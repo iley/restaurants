@@ -10,8 +10,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from .forms import CommentsForm, RatingForm, VisitForm
-from .models import City, Restaurant, Visit
+from .forms import CommentsForm, PhotoCaptionForm, PhotoForm, RatingForm, VisitForm
+from .models import City, Photo, Restaurant, Visit
 
 DEFAULT_SORT = "-rating,name"
 
@@ -112,6 +112,8 @@ def restaurant_edit(request, city_slug, pk):
         "comments_form": CommentsForm(instance=restaurant),
         "visits": restaurant.visits.all(),
         "add_form": VisitForm(),
+        "photos": restaurant.photos.all(),
+        "photo_form": PhotoForm(),
     })
 
 
@@ -230,6 +232,97 @@ def visit_delete(request, city_slug, pk, visit_pk):
     visit = get_object_or_404(Visit, pk=visit_pk, restaurant=restaurant)
     visit.delete()
     return _render_visits_section(request, city, restaurant)
+
+
+def _render_photos_section(request, city, restaurant, photo_form=None):
+    return render(request, "restaurants/_photos_section.html", {
+        "city": city,
+        "restaurant": restaurant,
+        "photos": restaurant.photos.all(),
+        "photo_form": photo_form or PhotoForm(),
+    })
+
+
+@staff_member_required
+def restaurant_photos_section(request, city_slug, pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    return _render_photos_section(request, city, restaurant)
+
+
+@staff_member_required
+@require_POST
+def photo_upload(request, city_slug, pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    form = PhotoForm(request.POST, request.FILES)
+    if form.is_valid():
+        photo = form.save(commit=False)
+        photo.restaurant = restaurant
+        # Place new photos at the end of the existing order.
+        last = restaurant.photos.aggregate(models.Max("order"))["order__max"]
+        photo.order = 0 if last is None else last + 1
+        photo.save()
+        return _render_photos_section(request, city, restaurant)
+    return _render_photos_section(request, city, restaurant, photo_form=form)
+
+
+@staff_member_required
+def photo_edit_caption(request, city_slug, pk, photo_pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    photo = get_object_or_404(Photo, pk=photo_pk, restaurant=restaurant)
+    if request.method == "POST":
+        form = PhotoCaptionForm(request.POST, instance=photo)
+        if form.is_valid():
+            form.save()
+            return render(request, "restaurants/_photo_card.html", {
+                "city": city,
+                "restaurant": restaurant,
+                "photo": photo,
+            })
+    else:
+        form = PhotoCaptionForm(instance=photo)
+    return render(request, "restaurants/_photo_caption_form.html", {
+        "city": city,
+        "restaurant": restaurant,
+        "photo": photo,
+        "form": form,
+    })
+
+
+@staff_member_required
+@require_POST
+def photo_delete(request, city_slug, pk, photo_pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    photo = get_object_or_404(Photo, pk=photo_pk, restaurant=restaurant)
+    photo.delete()
+    return _render_photos_section(request, city, restaurant)
+
+
+@staff_member_required
+@require_POST
+def photo_reorder(request, city_slug, pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    # Accept the new order as a repeated form field "photo_ids" (or JSON body).
+    raw_ids = request.POST.getlist("photo_ids")
+    if not raw_ids and request.body:
+        try:
+            raw_ids = json.loads(request.body).get("photo_ids", [])
+        except (ValueError, AttributeError):
+            raw_ids = []
+    # Only consider ids that belong to this restaurant — silently drop strangers.
+    valid_ids = set(restaurant.photos.values_list("pk", flat=True))
+    for index, raw in enumerate(raw_ids):
+        try:
+            photo_id = int(raw)
+        except (TypeError, ValueError):
+            continue
+        if photo_id in valid_ids:
+            Photo.objects.filter(pk=photo_id, restaurant=restaurant).update(order=index)
+    return _render_photos_section(request, city, restaurant)
 
 
 def restaurant_list(request, city_slug):

@@ -1,0 +1,38 @@
+<div id="photo-{{ photo.pk }}" class="photo-card column is-one-third-desktop is-half-tablet">
+  <figure class="image">
+    <img src="{% if photo.thumbnail %}{{ photo.thumbnail.url }}{% else %}{{ photo.image.url }}{% endif %}"
+         alt="{{ photo.caption|default:restaurant.name }}"
+         loading="lazy">
+  </figure>
+  <form class="mt-2"
+        hx-post="{% url 'photo_edit_caption' city_slug=city.slug pk=restaurant.pk photo_pk=photo.pk %}"
+        hx-target="#photo-{{ photo.pk }}"
+        hx-swap="outerHTML">
+    {% csrf_token %}
+    <div class="field">
+      <div class="control">
+        <input type="text"
+               name="caption"
+               class="input"
+               value="{{ form.caption.value|default_if_none:'' }}"
+               placeholder="Caption (optional)"
+               maxlength="200">
+      </div>
+      {% if form.caption.errors %}
+        <p class="help is-danger">{{ form.caption.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+    <div class="field is-grouped is-grouped-centered">
+      <div class="control">
+        <button type="submit" class="button is-primary is-small">Save</button>
+      </div>
+      <div class="control">
+        <button type="button"
+                class="button is-light is-small"
+                hx-get="{% url 'restaurant_photos_section' city_slug=city.slug pk=restaurant.pk %}"
+                hx-target="#photos-section"
+                hx-swap="outerHTML">Cancel</button>
+      </div>
+    </div>
+  </form>
+</div>

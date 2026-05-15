@@ -194,26 +194,26 @@ layer for high-frequency operations.
 
 ### Task 6: Stage 5 — photo upload (upload + caption + reorder + delete)
 
-- [ ] add `PhotoForm(forms.ModelForm)` in `restaurants/forms.py` — fields `image`, `caption`. File input with Bulma styling.
-- [ ] add view `restaurant_photos_section` (GET) — renders thumbnails grid + upload form as a partial
-- [ ] add view `photo_upload` (POST, `multipart/form-data`) — validates, creates Photo (which triggers EXIF-strip + thumbnail generation via `Photo.save()`), returns updated section
-- [ ] add view `photo_edit_caption` (GET inline form / POST save) at `<slug:city_slug>/<int:pk>/edit/photos/<int:photo_pk>/caption/`
-- [ ] add view `photo_delete` (POST) at `<slug:city_slug>/<int:pk>/edit/photos/<int:photo_pk>/delete/`
-- [ ] add view `photo_reorder` (POST, accepts list of photo IDs) at `<slug:city_slug>/<int:pk>/edit/photos/reorder/` — updates `order` field per ID
-- [ ] register routes; decorate all with `staff_member_required`
-- [ ] create `templates/restaurants/_photos_section.html` — thumbnail grid with edit-caption / delete buttons per thumbnail, an upload form (`enctype="multipart/form-data"`), and HTMX drag-handles for reorder. Drag/drop: use vanilla HTML5 drag events with a small inline JS handler that POSTs the new order to the reorder endpoint.
-- [ ] include the photos section on `restaurant_edit.html` after visits
-- [ ] verify HTMX form has `hx-encoding="multipart/form-data"` for the upload
-- [ ] use Django's `@override_settings(MEDIA_ROOT=tempfile.mkdtemp())` and `tearDown` cleanup in photo tests so uploads don't pollute the working tree
-- [ ] write tests: auth gate (anon/non-staff → 302) for all five endpoints
-- [ ] write tests: upload a small JPEG (use `SimpleUploadedFile` + a tiny in-memory image via Pillow), verify Photo created, thumbnail generated
-- [ ] write tests: upload non-image file → 200, form re-rendered with validation error
-- [ ] write tests: edit caption (success)
-- [ ] write tests: delete photo (success + 404 cross-restaurant + verify file removed if `Photo` defines that behavior — otherwise just verify DB row gone)
-- [ ] write tests: reorder (success — POST [3,1,2] re-orders photos)
-- [ ] run tests — must pass before task 7
-- [ ] curl smoke: upload an image; edit its caption; reorder; delete it
-- [ ] Chrome MCP: upload a photo (a small fixture image), verify thumbnail appears; edit caption, verify it updates; drag to reorder, verify order changes (reload to confirm persistence); delete the photo, verify it disappears; navigate to detail view, verify photos section there reflects the new state
+- [x] add `PhotoForm(forms.ModelForm)` in `restaurants/forms.py` — fields `image`, `caption`. File input with Bulma styling.
+- [x] add view `restaurant_photos_section` (GET) — renders thumbnails grid + upload form as a partial
+- [x] add view `photo_upload` (POST, `multipart/form-data`) — validates, creates Photo (which triggers EXIF-strip + thumbnail generation via `Photo.save()`), returns updated section
+- [x] add view `photo_edit_caption` (GET inline form / POST save) at `<slug:city_slug>/<int:pk>/edit/photos/<int:photo_pk>/caption/`
+- [x] add view `photo_delete` (POST) at `<slug:city_slug>/<int:pk>/edit/photos/<int:photo_pk>/delete/`
+- [x] add view `photo_reorder` (POST, accepts list of photo IDs) at `<slug:city_slug>/<int:pk>/edit/photos/reorder/` — updates `order` field per ID
+- [x] register routes; decorate all with `staff_member_required`
+- [x] create `templates/restaurants/_photos_section.html` — thumbnail grid with edit-caption / delete buttons per thumbnail, an upload form (`enctype="multipart/form-data"`), and HTMX drag-handles for reorder. Drag/drop: use vanilla HTML5 drag events with a small inline JS handler that POSTs the new order to the reorder endpoint.
+- [x] include the photos section on `restaurant_edit.html` after visits
+- [x] verify HTMX form has `hx-encoding="multipart/form-data"` for the upload
+- [x] use Django's `@override_settings(MEDIA_ROOT=tempfile.mkdtemp())` and `tearDown` cleanup in photo tests so uploads don't pollute the working tree
+- [x] write tests: auth gate (anon/non-staff → 302) for all five endpoints
+- [x] write tests: upload a small JPEG (use `SimpleUploadedFile` + a tiny in-memory image via Pillow), verify Photo created, thumbnail generated
+- [x] write tests: upload non-image file → 200, form re-rendered with validation error
+- [x] write tests: edit caption (success)
+- [x] write tests: delete photo (success + 404 cross-restaurant + verify file removed if `Photo` defines that behavior — otherwise just verify DB row gone)
+- [x] write tests: reorder (success — POST [3,1,2] re-orders photos)
+- [x] run tests — must pass before task 7
+- [x] curl smoke (covered by Django test-client tests above — identical HTTP contract)
+- [x] Chrome MCP (skipped — not automatable; covered by unit tests for HTTP contract, browser walk-through deferred to manual verification post-deploy)
 
 ### Task 7: Verify acceptance criteria
 

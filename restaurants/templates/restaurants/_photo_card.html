@@ -1,0 +1,34 @@
+<div id="photo-{{ photo.pk }}"
+     class="photo-card column is-one-third-desktop is-half-tablet"
+     draggable="true"
+     data-photo-id="{{ photo.pk }}">
+  <figure class="image">
+    <a href="{{ photo.image.url }}" target="_blank" rel="noopener">
+      <img src="{% if photo.thumbnail %}{{ photo.thumbnail.url }}{% else %}{{ photo.image.url }}{% endif %}"
+           alt="{{ photo.caption|default:restaurant.name }}"
+           loading="lazy">
+    </a>
+  </figure>
+  {% if photo.caption %}
+    <p class="has-text-centered has-text-grey is-size-7 mt-1">{{ photo.caption }}</p>
+  {% else %}
+    <p class="has-text-centered has-text-grey-light is-size-7 mt-1"><em>No caption</em></p>
+  {% endif %}
+  <div class="field is-grouped is-grouped-centered mt-2">
+    <div class="control">
+      <button type="button"
+              class="button is-small is-light"
+              hx-get="{% url 'photo_edit_caption' city_slug=city.slug pk=restaurant.pk photo_pk=photo.pk %}"
+              hx-target="#photo-{{ photo.pk }}"
+              hx-swap="outerHTML">Edit caption</button>
+    </div>
+    <div class="control">
+      <button type="button"
+              class="button is-small is-danger is-light"
+              hx-post="{% url 'photo_delete' city_slug=city.slug pk=restaurant.pk photo_pk=photo.pk %}"
+              hx-target="#photos-section"
+              hx-swap="outerHTML"
+              hx-confirm="Delete this photo?">Delete</button>
+    </div>
+  </div>
+</div>

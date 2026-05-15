@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Restaurant, Visit
+from .models import Photo, Restaurant, Visit
 
 
 class RatingForm(forms.ModelForm):
@@ -40,5 +40,29 @@ class VisitForm(forms.ModelForm):
                 "class": "textarea",
                 "rows": 2,
                 "placeholder": "Notes (optional)",
+            }),
+        }
+
+
+class PhotoForm(forms.ModelForm):
+    class Meta:
+        model = Photo
+        fields = ["image", "caption"]
+        widgets = {
+            "caption": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Caption (optional)",
+            }),
+        }
+
+
+class PhotoCaptionForm(forms.ModelForm):
+    class Meta:
+        model = Photo
+        fields = ["caption"]
+        widgets = {
+            "caption": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Caption (optional)",
             }),
         }

@@ -1,12 +1,17 @@
+import io
+import shutil
+import tempfile
 from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
-from restaurants.models import City, Restaurant, Visit
+from restaurants.models import City, Photo, Restaurant, Visit
 from restaurants.sources import (
     FETCHABLE_FIELDS,
     FetchedValue,
@@ -1665,3 +1670,282 @@ class RestaurantEditVisitsTests(TestCase):
         self.assertContains(resp, "2026-05-01")
         self.assertContains(resp, "Lunch")
         self.assertContains(resp, f'hx-post="{self.add_url}"')
+
+
+def _make_jpeg(name="test.jpg", color=(255, 0, 0), size=(20, 20)):
+    """Return a SimpleUploadedFile with a tiny in-memory JPEG."""
+    buf = io.BytesIO()
+    Image.new("RGB", size, color).save(buf, format="JPEG")
+    buf.seek(0)
+    return SimpleUploadedFile(name, buf.read(), content_type="image/jpeg")
+
+
+_PHOTO_MEDIA_ROOT = tempfile.mkdtemp(prefix="restaurants-photo-tests-")
+
+
+@override_settings(MEDIA_ROOT=_PHOTO_MEDIA_ROOT)
+class RestaurantEditPhotosTests(TestCase):
+    """HTMX upload + caption + reorder + delete for Restaurant.photos."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+        cls.restaurant = Restaurant.objects.create(
+            city=cls.city, name="Chapter One", cuisine="Modern Irish",
+        )
+        cls.other_restaurant = Restaurant.objects.create(
+            city=cls.city, name="Other", cuisine="Italian",
+        )
+        User = get_user_model()
+        cls.staff = User.objects.create_user(
+            username="staff", password="pw", is_staff=True,
+        )
+        cls.regular = User.objects.create_user(
+            username="reg", password="pw", is_staff=False,
+        )
+        cls.section_url = reverse(
+            "restaurant_photos_section",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+        cls.upload_url = reverse(
+            "photo_upload",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+        cls.reorder_url = reverse(
+            "photo_reorder",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+        cls.edit_url = reverse(
+            "restaurant_edit",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(_PHOTO_MEDIA_ROOT, ignore_errors=True)
+
+    def _caption_url(self, photo_pk, restaurant_pk=None):
+        return reverse(
+            "photo_edit_caption",
+            kwargs={
+                "city_slug": self.city.slug,
+                "pk": restaurant_pk or self.restaurant.pk,
+                "photo_pk": photo_pk,
+            },
+        )
+
+    def _delete_url(self, photo_pk, restaurant_pk=None):
+        return reverse(
+            "photo_delete",
+            kwargs={
+                "city_slug": self.city.slug,
+                "pk": restaurant_pk or self.restaurant.pk,
+                "photo_pk": photo_pk,
+            },
+        )
+
+    # --- auth gate ---
+
+    def test_anon_get_section_redirects_to_login(self):
+        resp = self.client.get(self.section_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_non_staff_get_section_redirects_to_login(self):
+        self.client.force_login(self.regular)
+        resp = self.client.get(self.section_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_anon_post_upload_redirects_to_login(self):
+        resp = self.client.post(self.upload_url, {"image": _make_jpeg(), "caption": ""})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.assertEqual(self.restaurant.photos.count(), 0)
+
+    def test_non_staff_post_upload_redirects_to_login(self):
+        self.client.force_login(self.regular)
+        resp = self.client.post(self.upload_url, {"image": _make_jpeg(), "caption": ""})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.assertEqual(self.restaurant.photos.count(), 0)
+
+    def test_anon_get_caption_redirects_to_login(self):
+        photo = Photo.objects.create(restaurant=self.restaurant, image=_make_jpeg())
+        resp = self.client.get(self._caption_url(photo.pk))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_non_staff_post_caption_redirects_to_login(self):
+        photo = Photo.objects.create(restaurant=self.restaurant, image=_make_jpeg())
+        self.client.force_login(self.regular)
+        resp = self.client.post(self._caption_url(photo.pk), {"caption": "x"})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_anon_post_delete_redirects_to_login(self):
+        photo = Photo.objects.create(restaurant=self.restaurant, image=_make_jpeg())
+        resp = self.client.post(self._delete_url(photo.pk))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.assertTrue(Photo.objects.filter(pk=photo.pk).exists())
+
+    def test_non_staff_post_delete_redirects_to_login(self):
+        photo = Photo.objects.create(restaurant=self.restaurant, image=_make_jpeg())
+        self.client.force_login(self.regular)
+        resp = self.client.post(self._delete_url(photo.pk))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.assertTrue(Photo.objects.filter(pk=photo.pk).exists())
+
+    def test_anon_post_reorder_redirects_to_login(self):
+        resp = self.client.post(self.reorder_url, {"photo_ids": []})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_non_staff_post_reorder_redirects_to_login(self):
+        self.client.force_login(self.regular)
+        resp = self.client.post(self.reorder_url, {"photo_ids": []})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    # --- happy paths ---
+
+    def test_staff_get_section_renders_existing_photos(self):
+        Photo.objects.create(
+            restaurant=self.restaurant, image=_make_jpeg(), caption="Tasty",
+        )
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.section_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Tasty")
+        self.assertContains(resp, 'id="photo-upload-form"')
+
+    def test_staff_upload_creates_photo_with_thumbnail(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.upload_url, {
+            "image": _make_jpeg(name="lunch.jpg"),
+            "caption": "Lunch shot",
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.restaurant.photos.count(), 1)
+        photo = self.restaurant.photos.get()
+        self.assertEqual(photo.caption, "Lunch shot")
+        # The model's save() generates a thumbnail; verify the file is present.
+        self.assertTrue(photo.thumbnail.name)
+        photo.thumbnail.open("rb")
+        photo.thumbnail.close()
+        self.assertContains(resp, "Lunch shot")
+
+    def test_staff_upload_non_image_renders_validation_error(self):
+        self.client.force_login(self.staff)
+        bogus = SimpleUploadedFile("notes.txt", b"hello world", content_type="text/plain")
+        resp = self.client.post(self.upload_url, {"image": bogus, "caption": ""})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.restaurant.photos.count(), 0)
+        self.assertContains(resp, "is-danger")
+
+    def test_staff_upload_assigns_increasing_order(self):
+        self.client.force_login(self.staff)
+        self.client.post(self.upload_url, {"image": _make_jpeg(name="a.jpg"), "caption": "a"})
+        self.client.post(self.upload_url, {"image": _make_jpeg(name="b.jpg"), "caption": "b"})
+        orders = list(self.restaurant.photos.values_list("order", flat=True).order_by("order"))
+        self.assertEqual(orders, [0, 1])
+
+    def test_staff_get_caption_renders_inline_form(self):
+        photo = Photo.objects.create(
+            restaurant=self.restaurant, image=_make_jpeg(), caption="Old caption",
+        )
+        self.client.force_login(self.staff)
+        resp = self.client.get(self._caption_url(photo.pk))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'name="caption"')
+        self.assertContains(resp, "Old caption")
+
+    def test_staff_post_caption_updates_db(self):
+        photo = Photo.objects.create(
+            restaurant=self.restaurant, image=_make_jpeg(), caption="Old caption",
+        )
+        self.client.force_login(self.staff)
+        resp = self.client.post(self._caption_url(photo.pk), {"caption": "New caption"})
+        self.assertEqual(resp.status_code, 200)
+        photo.refresh_from_db()
+        self.assertEqual(photo.caption, "New caption")
+        self.assertContains(resp, "New caption")
+
+    def test_caption_404_when_photo_belongs_to_other_restaurant(self):
+        photo = Photo.objects.create(restaurant=self.other_restaurant, image=_make_jpeg())
+        self.client.force_login(self.staff)
+        resp = self.client.get(self._caption_url(photo.pk))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_staff_post_delete_removes_photo(self):
+        photo = Photo.objects.create(restaurant=self.restaurant, image=_make_jpeg())
+        self.client.force_login(self.staff)
+        resp = self.client.post(self._delete_url(photo.pk))
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(Photo.objects.filter(pk=photo.pk).exists())
+
+    def test_delete_404_when_photo_belongs_to_other_restaurant(self):
+        photo = Photo.objects.create(restaurant=self.other_restaurant, image=_make_jpeg())
+        self.client.force_login(self.staff)
+        resp = self.client.post(self._delete_url(photo.pk))
+        self.assertEqual(resp.status_code, 404)
+        self.assertTrue(Photo.objects.filter(pk=photo.pk).exists())
+
+    def test_delete_get_returns_405(self):
+        photo = Photo.objects.create(restaurant=self.restaurant, image=_make_jpeg())
+        self.client.force_login(self.staff)
+        resp = self.client.get(self._delete_url(photo.pk))
+        self.assertEqual(resp.status_code, 405)
+        self.assertTrue(Photo.objects.filter(pk=photo.pk).exists())
+
+    def test_upload_get_returns_405(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.upload_url)
+        self.assertEqual(resp.status_code, 405)
+
+    def test_reorder_updates_order_field(self):
+        p1 = Photo.objects.create(restaurant=self.restaurant, image=_make_jpeg(), order=0)
+        p2 = Photo.objects.create(restaurant=self.restaurant, image=_make_jpeg(), order=1)
+        p3 = Photo.objects.create(restaurant=self.restaurant, image=_make_jpeg(), order=2)
+        self.client.force_login(self.staff)
+        # Submit a new order [p3, p1, p2].
+        resp = self.client.post(self.reorder_url, {
+            "photo_ids": [str(p3.pk), str(p1.pk), str(p2.pk)],
+        })
+        self.assertEqual(resp.status_code, 200)
+        p1.refresh_from_db()
+        p2.refresh_from_db()
+        p3.refresh_from_db()
+        self.assertEqual(p3.order, 0)
+        self.assertEqual(p1.order, 1)
+        self.assertEqual(p2.order, 2)
+
+    def test_reorder_ignores_photos_from_other_restaurant(self):
+        mine = Photo.objects.create(restaurant=self.restaurant, image=_make_jpeg(), order=0)
+        theirs = Photo.objects.create(
+            restaurant=self.other_restaurant, image=_make_jpeg(), order=5,
+        )
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.reorder_url, {
+            "photo_ids": [str(theirs.pk), str(mine.pk)],
+        })
+        self.assertEqual(resp.status_code, 200)
+        theirs.refresh_from_db()
+        mine.refresh_from_db()
+        # Stranger photo untouched; mine repositioned according to its own index.
+        self.assertEqual(theirs.order, 5)
+        self.assertEqual(mine.order, 1)
+
+    def test_photos_section_rendered_on_edit_page(self):
+        Photo.objects.create(
+            restaurant=self.restaurant, image=_make_jpeg(), caption="On edit page",
+        )
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.edit_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'id="photos-section"')
+        self.assertContains(resp, "On edit page")
+        self.assertContains(resp, f'hx-post="{self.upload_url}"')
