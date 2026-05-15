@@ -1087,3 +1087,64 @@ class PinnedMarkerRenderTests(TestCase):
         # on the page can't satisfy or break the assertion.
         self.assertContains(resp, ">PinnedPlace</a> 📌")
         self.assertNotContains(resp, ">UnpinnedPlace</a> 📌")
+
+
+class RestaurantEditPageTests(TestCase):
+    """Auth gate + GET on the staff-only edit page."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+        cls.restaurant = Restaurant.objects.create(
+            city=cls.city, name="Chapter One", cuisine="Modern Irish",
+        )
+        User = get_user_model()
+        cls.staff = User.objects.create_user(
+            username="staff", password="pw", is_staff=True,
+        )
+        cls.regular = User.objects.create_user(
+            username="reg", password="pw", is_staff=False,
+        )
+        cls.edit_url = reverse(
+            "restaurant_edit",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+        cls.detail_url = reverse(
+            "restaurant_detail",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+
+    def test_anonymous_get_redirects_to_admin_login(self):
+        resp = self.client.get(self.edit_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.assertIn(self.edit_url, resp["Location"])
+
+    def test_non_staff_get_redirects_to_login(self):
+        self.client.force_login(self.regular)
+        resp = self.client.get(self.edit_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_staff_get_returns_200_with_restaurant_name(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.edit_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Chapter One")
+
+    def test_edit_link_shows_on_detail_page_for_staff(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.detail_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, f'href="{self.edit_url}"')
+
+    def test_edit_link_hidden_on_detail_page_for_anon(self):
+        resp = self.client.get(self.detail_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, f'href="{self.edit_url}"')
+
+    def test_edit_link_hidden_on_detail_page_for_non_staff(self):
+        self.client.force_login(self.regular)
+        resp = self.client.get(self.detail_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, f'href="{self.edit_url}"')

@@ -14,7 +14,11 @@
 <div class="is-flex is-align-items-baseline is-justify-content-space-between">
   <h1 class="title">{{ restaurant.name }}{% if restaurant.is_wishlist %} <span class="tag is-info is-light">Wishlist</span>{% endif %}{% if restaurant.closed %} <span class="tag is-dark">Closed</span>{% endif %}</h1>
   {% if user.is_staff %}
-  <a href="{% url 'admin:restaurants_restaurant_change' restaurant.pk %}" class="has-text-grey is-size-7">Edit</a>
+  <div class="is-size-7">
+    <a href="{% url 'restaurant_edit' city_slug=city.slug pk=restaurant.pk %}" class="has-text-grey">Edit</a>
+    <span class="has-text-grey-light"> · </span>
+    <a href="{% url 'admin:restaurants_restaurant_change' restaurant.pk %}" class="has-text-grey">Admin</a>
+  </div>
   {% endif %}
 </div>
 

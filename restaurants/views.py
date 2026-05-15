@@ -1,6 +1,7 @@
 import json
 from urllib.parse import urlencode
 
+from django.contrib.admin.views.decorators import staff_member_required
 from django.db import models
 from django.db.models import Case, IntegerField, Value, When
 from django.db.models.functions import Lower
@@ -94,6 +95,17 @@ def restaurant_detail(request, city_slug, pk):
         "cities": City.objects.filter(hidden=False),
         "visits": visits,
         "has_notes": has_notes,
+    })
+
+
+@staff_member_required
+def restaurant_edit(request, city_slug, pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    return render(request, "restaurants/restaurant_edit.html", {
+        "restaurant": restaurant,
+        "city": city,
+        "cities": City.objects.filter(hidden=False),
     })
 
 

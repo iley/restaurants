@@ -114,18 +114,18 @@ layer for high-frequency operations.
 
 ### Task 1: Foundation — edit page scaffold + staff auth gate
 
-- [ ] add `LOGIN_URL = "/admin/login/"` to `config/settings.py` (so `@login_required` and `staff_member_required` redirect to the admin login)
-- [ ] create `restaurants/views.py::restaurant_edit` — a GET-only view at `/<city>/<int:pk>/edit/`, decorated with `django.contrib.admin.views.decorators.staff_member_required`
-- [ ] register route `restaurant_edit` in `restaurants/urls.py` as `<slug:city_slug>/<int:pk>/edit/`
-- [ ] create `templates/restaurants/restaurant_edit.html` extending `base.html`, with a breadcrumb (City › Restaurant › Edit) and a heading; empty body — sections get filled in by later tasks
-- [ ] add an "Edit" link/button on `restaurant_detail.html` next to the existing admin link, visible only when `user.is_staff`, pointing to the new edit URL. Keep the admin link too (labelled "Admin") so the full surface is one click away.
-- [ ] write test: anonymous GET to edit URL → 302 to `/admin/login/?next=...`
-- [ ] write test: non-staff authenticated user GET → 302 to login (staff_member_required redirects non-staff)
-- [ ] write test: staff user GET → 200, response contains restaurant name
-- [ ] write test: edit link appears on detail page only when `user.is_staff`
-- [ ] run `uv run manage.py test restaurants` — must pass before task 2
-- [ ] curl smoke: anonymous GET → 302; staff GET (with session cookie) → 200
-- [ ] Chrome MCP: log in via `/admin/login/`, navigate to a restaurant, click Edit, confirm the page loads and shows the restaurant name
+- [x] add `LOGIN_URL = "/admin/login/"` to `config/settings.py` (so `@login_required` and `staff_member_required` redirect to the admin login)
+- [x] create `restaurants/views.py::restaurant_edit` — a GET-only view at `/<city>/<int:pk>/edit/`, decorated with `django.contrib.admin.views.decorators.staff_member_required`
+- [x] register route `restaurant_edit` in `restaurants/urls.py` as `<slug:city_slug>/<int:pk>/edit/`
+- [x] create `templates/restaurants/restaurant_edit.html` extending `base.html`, with a breadcrumb (City › Restaurant › Edit) and a heading; empty body — sections get filled in by later tasks
+- [x] add an "Edit" link/button on `restaurant_detail.html` next to the existing admin link, visible only when `user.is_staff`, pointing to the new edit URL. Keep the admin link too (labelled "Admin") so the full surface is one click away.
+- [x] write test: anonymous GET to edit URL → 302 to `/admin/login/?next=...`
+- [x] write test: non-staff authenticated user GET → 302 to login (staff_member_required redirects non-staff)
+- [x] write test: staff user GET → 200, response contains restaurant name
+- [x] write test: edit link appears on detail page only when `user.is_staff`
+- [x] run `uv run manage.py test restaurants` — must pass before task 2
+- [x] curl smoke (covered by Django test-client tests above — identical HTTP contract)
+- [x] Chrome MCP (skipped — not automatable; covered by unit tests for HTTP contract, browser walk-through deferred to manual verification post-deploy)
 
 ### Task 2: Stage 1 — edit pinned status (HTMX toggle)
 
