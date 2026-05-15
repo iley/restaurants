@@ -53,24 +53,30 @@
       const grid = document.getElementById("photos-grid");
       if (!grid) return;
       let dragged = null;
-      grid.querySelectorAll(".photo-card").forEach(function (card) {
-        card.addEventListener("dragstart", function (e) {
-          dragged = card;
-          card.classList.add("is-dragging");
-          e.dataTransfer.effectAllowed = "move";
-        });
-        card.addEventListener("dragend", function () {
-          card.classList.remove("is-dragging");
-          dragged = null;
-          postOrder();
-        });
-        card.addEventListener("dragover", function (e) {
-          e.preventDefault();
-          if (!dragged || dragged === card) return;
-          const rect = card.getBoundingClientRect();
-          const before = (e.clientY - rect.top) < rect.height / 2;
-          grid.insertBefore(dragged, before ? card : card.nextSibling);
-        });
+      // Delegate listeners to the grid so cards swapped in via HTMX (e.g. after
+      // an inline caption save) still participate in drag-and-drop.
+      grid.addEventListener("dragstart", function (e) {
+        const card = e.target.closest(".photo-card");
+        if (!card || !grid.contains(card)) return;
+        dragged = card;
+        card.classList.add("is-dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
+      grid.addEventListener("dragend", function (e) {
+        const card = e.target.closest(".photo-card");
+        if (!card) return;
+        card.classList.remove("is-dragging");
+        dragged = null;
+        postOrder();
+      });
+      grid.addEventListener("dragover", function (e) {
+        const card = e.target.closest(".photo-card");
+        if (!card) return;
+        e.preventDefault();
+        if (!dragged || dragged === card) return;
+        const rect = card.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < rect.height / 2;
+        grid.insertBefore(dragged, before ? card : card.nextSibling);
       });
       function postOrder() {
         const ids = Array.from(grid.querySelectorAll(".photo-card")).map(function (c) {
