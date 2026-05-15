@@ -297,6 +297,11 @@ def photo_delete(request, city_slug, pk, photo_pk):
     city = get_object_or_404(City, slug=city_slug, hidden=False)
     restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
     photo = get_object_or_404(Photo, pk=photo_pk, restaurant=restaurant)
+    # Django doesn't auto-delete ImageField files; remove them so disk doesn't leak.
+    if photo.image:
+        photo.image.delete(save=False)
+    if photo.thumbnail:
+        photo.thumbnail.delete(save=False)
     photo.delete()
     return _render_photos_section(request, city, restaurant)
 
@@ -306,13 +311,7 @@ def photo_delete(request, city_slug, pk, photo_pk):
 def photo_reorder(request, city_slug, pk):
     city = get_object_or_404(City, slug=city_slug, hidden=False)
     restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
-    # Accept the new order as a repeated form field "photo_ids" (or JSON body).
     raw_ids = request.POST.getlist("photo_ids")
-    if not raw_ids and request.body:
-        try:
-            raw_ids = json.loads(request.body).get("photo_ids", [])
-        except (ValueError, AttributeError):
-            raw_ids = []
     # Only consider ids that belong to this restaurant — silently drop strangers.
     valid_ids = set(restaurant.photos.values_list("pk", flat=True))
     for index, raw in enumerate(raw_ids):

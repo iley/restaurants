@@ -1,4 +1,5 @@
 import io
+import os
 import shutil
 import tempfile
 from decimal import Decimal
@@ -1882,10 +1883,16 @@ class RestaurantEditPhotosTests(TestCase):
 
     def test_staff_post_delete_removes_photo(self):
         photo = Photo.objects.create(restaurant=self.restaurant, image=_make_jpeg())
+        image_path = photo.image.path
+        thumbnail_path = photo.thumbnail.path
+        self.assertTrue(os.path.exists(image_path))
+        self.assertTrue(os.path.exists(thumbnail_path))
         self.client.force_login(self.staff)
         resp = self.client.post(self._delete_url(photo.pk))
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(Photo.objects.filter(pk=photo.pk).exists())
+        self.assertFalse(os.path.exists(image_path))
+        self.assertFalse(os.path.exists(thumbnail_path))
 
     def test_delete_404_when_photo_belongs_to_other_restaurant(self):
         photo = Photo.objects.create(restaurant=self.other_restaurant, image=_make_jpeg())
