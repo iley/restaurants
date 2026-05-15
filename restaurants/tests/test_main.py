@@ -1083,13 +1083,7 @@ class PinnedMarkerRenderTests(TestCase):
     def test_pin_marker_renders_for_pinned_row(self):
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
-        html = resp.content.decode()
-        # Anchor on the row to avoid catching the emoji somewhere unrelated.
-        pinned_idx = html.index("PinnedPlace")
-        unpinned_idx = html.index("UnpinnedPlace")
-        # The 📌 should appear after the pinned name but before the unpinned name.
-        pin_idx = html.index("📌")
-        self.assertGreater(pin_idx, pinned_idx)
-        self.assertLess(pin_idx, unpinned_idx)
-        # And it should only appear once (only one pinned row).
-        self.assertEqual(html.count("📌"), 1)
+        # Anchor the marker to the row link so unrelated occurrences elsewhere
+        # on the page can't satisfy or break the assertion.
+        self.assertContains(resp, ">PinnedPlace</a> 📌")
+        self.assertNotContains(resp, ">UnpinnedPlace</a> 📌")
