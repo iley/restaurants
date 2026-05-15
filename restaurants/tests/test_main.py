@@ -1234,6 +1234,69 @@ class RestaurantTogglePinnedTests(TestCase):
         self.assertContains(resp, f'hx-post="{self.toggle_url}"')
 
 
+class HtmxCsrfWiringTests(TestCase):
+    """Bare hx-post buttons (pin, delete) live outside any <form>, so they
+    rely on a global htmx:configRequest handler in base.html that copies the
+    csrftoken cookie into the X-CSRFToken header. Lock that contract in."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+        cls.restaurant = Restaurant.objects.create(city=cls.city, name="R")
+        User = get_user_model()
+        cls.staff = User.objects.create_user(
+            username="staff", password="pw", is_staff=True,
+        )
+
+    def test_pin_toggle_post_without_csrf_token_is_rejected(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.staff)
+        # Seed the csrftoken cookie via GET of the edit page.
+        edit_url = reverse(
+            "restaurant_edit",
+            kwargs={"city_slug": self.city.slug, "pk": self.restaurant.pk},
+        )
+        self.assertEqual(client.get(edit_url).status_code, 200)
+        toggle_url = reverse(
+            "restaurant_toggle_pinned",
+            kwargs={"city_slug": self.city.slug, "pk": self.restaurant.pk},
+        )
+        # No X-CSRFToken header (which is what would happen if base.html's
+        # htmx:configRequest handler were removed) — Django rejects the POST.
+        self.assertEqual(client.post(toggle_url).status_code, 403)
+
+    def test_pin_toggle_post_with_csrf_header_succeeds(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.staff)
+        edit_url = reverse(
+            "restaurant_edit",
+            kwargs={"city_slug": self.city.slug, "pk": self.restaurant.pk},
+        )
+        client.get(edit_url)
+        token = client.cookies["csrftoken"].value
+        toggle_url = reverse(
+            "restaurant_toggle_pinned",
+            kwargs={"city_slug": self.city.slug, "pk": self.restaurant.pk},
+        )
+        resp = client.post(toggle_url, HTTP_X_CSRFTOKEN=token)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_base_template_wires_csrf_header_for_htmx(self):
+        client = Client()
+        client.force_login(self.staff)
+        edit_url = reverse(
+            "restaurant_edit",
+            kwargs={"city_slug": self.city.slug, "pk": self.restaurant.pk},
+        )
+        resp = client.get(edit_url)
+        self.assertEqual(resp.status_code, 200)
+        # The handler reads the csrftoken cookie and sets the X-CSRFToken
+        # header on every htmx request; without it, the pin/delete buttons
+        # (which sit outside any <form>) would 403 in production.
+        self.assertContains(resp, "htmx:configRequest")
+        self.assertContains(resp, "X-CSRFToken")
+
+
 class RestaurantEditRatingTests(TestCase):
     """HTMX inline edit for Restaurant.rating on the edit page."""
 

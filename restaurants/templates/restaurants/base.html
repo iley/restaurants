@@ -72,6 +72,13 @@
       menu.classList.toggle("is-active");
     });
   });
+
+  // Send Django's CSRF cookie on every HTMX request so bare hx-post buttons
+  // (pin toggle, delete) work without being wrapped in a <form>.
+  document.body.addEventListener("htmx:configRequest", (e) => {
+    const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    if (match) e.detail.headers["X-CSRFToken"] = decodeURIComponent(match[1]);
+  });
 </script>
 
 </body>
