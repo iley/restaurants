@@ -12,4 +12,14 @@
 </nav>
 
 <h1 class="title">Edit {{ restaurant.name }}</h1>
+
+<section class="mb-5">
+  <h2 class="subtitle is-5 mb-2">Pin</h2>
+  <div class="field">
+    <div class="control">
+      {% include "restaurants/_pinned_toggle.html" %}
+    </div>
+    <p class="help">Pinned restaurants float to the top of the list view.</p>
+  </div>
+</section>
 {% endblock %}

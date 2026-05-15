@@ -8,6 +8,7 @@ from django.db.models.functions import Lower
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from .models import City, Restaurant
 
@@ -106,6 +107,19 @@ def restaurant_edit(request, city_slug, pk):
         "restaurant": restaurant,
         "city": city,
         "cities": City.objects.filter(hidden=False),
+    })
+
+
+@staff_member_required
+@require_POST
+def restaurant_toggle_pinned(request, city_slug, pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    restaurant.pinned = not restaurant.pinned
+    restaurant.save(update_fields=["pinned"])
+    return render(request, "restaurants/_pinned_toggle.html", {
+        "restaurant": restaurant,
+        "city": city,
     })
 
 

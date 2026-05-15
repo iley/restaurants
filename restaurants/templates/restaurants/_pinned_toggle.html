@@ -1,0 +1,8 @@
+<button type="button"
+        id="pinned-toggle"
+        class="button {% if restaurant.pinned %}is-warning{% else %}is-light{% endif %}"
+        hx-post="{% url 'restaurant_toggle_pinned' city_slug=city.slug pk=restaurant.pk %}"
+        hx-target="this"
+        hx-swap="outerHTML">
+  {% if restaurant.pinned %}Pinned ★{% else %}Pin{% endif %}
+</button>

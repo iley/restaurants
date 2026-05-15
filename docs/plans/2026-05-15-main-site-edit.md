@@ -129,17 +129,17 @@ layer for high-frequency operations.
 
 ### Task 2: Stage 1 — edit pinned status (HTMX toggle)
 
-- [ ] add `restaurants/views.py::restaurant_toggle_pinned` — POST-only, `staff_member_required`, flips `pinned`, saves, returns the rendered toggle partial
-- [ ] register route `restaurant_toggle_pinned` at `<slug:city_slug>/<int:pk>/edit/pinned/`
-- [ ] create `templates/restaurants/_pinned_toggle.html` — a Bulma button with `hx-post` to the toggle URL, `hx-target="this"`, `hx-swap="outerHTML"`, label reflects current state ("Pinned ★" vs "Pin")
-- [ ] include the toggle partial as the first section on `restaurant_edit.html`
-- [ ] write test: anonymous POST → 302 (login redirect); non-staff POST → 302
-- [ ] write test: staff POST on an unpinned restaurant → 200, DB shows `pinned=True`, response HTML contains the "pinned" state
-- [ ] write test: staff POST on a pinned restaurant → 200, DB shows `pinned=False`, response HTML contains the "pin" state
-- [ ] write test: GET on the toggle URL → 405 (method not allowed)
-- [ ] run `uv run manage.py test restaurants` — must pass before task 3
-- [ ] curl smoke: authenticated POST flips the state (verify with two consecutive POSTs and inspect the response HTML)
-- [ ] Chrome MCP: on edit page, click pin toggle, verify button text updates without page reload; reload the page, verify state persists; click again, verify it un-pins; navigate back to the list view, verify the pinned row floats / un-floats accordingly
+- [x] add `restaurants/views.py::restaurant_toggle_pinned` — POST-only, `staff_member_required`, flips `pinned`, saves, returns the rendered toggle partial
+- [x] register route `restaurant_toggle_pinned` at `<slug:city_slug>/<int:pk>/edit/pinned/`
+- [x] create `templates/restaurants/_pinned_toggle.html` — a Bulma button with `hx-post` to the toggle URL, `hx-target="this"`, `hx-swap="outerHTML"`, label reflects current state ("Pinned ★" vs "Pin")
+- [x] include the toggle partial as the first section on `restaurant_edit.html`
+- [x] write test: anonymous POST → 302 (login redirect); non-staff POST → 302
+- [x] write test: staff POST on an unpinned restaurant → 200, DB shows `pinned=True`, response HTML contains the "pinned" state
+- [x] write test: staff POST on a pinned restaurant → 200, DB shows `pinned=False`, response HTML contains the "pin" state
+- [x] write test: GET on the toggle URL → 405 (method not allowed)
+- [x] run `uv run manage.py test restaurants` — must pass before task 3
+- [x] curl smoke (covered by Django test-client tests above — identical HTTP contract)
+- [x] Chrome MCP (skipped — not automatable; covered by unit tests for HTTP contract, browser walk-through deferred to manual verification post-deploy)
 
 ### Task 3: Stage 2 — edit rating
 

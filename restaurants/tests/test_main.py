@@ -1148,3 +1148,81 @@ class RestaurantEditPageTests(TestCase):
         resp = self.client.get(self.detail_url)
         self.assertEqual(resp.status_code, 200)
         self.assertNotContains(resp, f'href="{self.edit_url}"')
+
+
+class RestaurantTogglePinnedTests(TestCase):
+    """HTMX toggle for Restaurant.pinned on the edit page."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+        cls.restaurant = Restaurant.objects.create(
+            city=cls.city, name="Chapter One", cuisine="Modern Irish",
+        )
+        User = get_user_model()
+        cls.staff = User.objects.create_user(
+            username="staff", password="pw", is_staff=True,
+        )
+        cls.regular = User.objects.create_user(
+            username="reg", password="pw", is_staff=False,
+        )
+        cls.toggle_url = reverse(
+            "restaurant_toggle_pinned",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+        cls.edit_url = reverse(
+            "restaurant_edit",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+
+    def setUp(self):
+        # Reset pinned state between tests so order doesn't matter.
+        self.restaurant.pinned = False
+        self.restaurant.save(update_fields=["pinned"])
+
+    def test_anonymous_post_redirects_to_login(self):
+        resp = self.client.post(self.toggle_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.restaurant.refresh_from_db()
+        self.assertFalse(self.restaurant.pinned)
+
+    def test_non_staff_post_redirects_to_login(self):
+        self.client.force_login(self.regular)
+        resp = self.client.post(self.toggle_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.restaurant.refresh_from_db()
+        self.assertFalse(self.restaurant.pinned)
+
+    def test_staff_post_pins_an_unpinned_restaurant(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.toggle_url)
+        self.assertEqual(resp.status_code, 200)
+        self.restaurant.refresh_from_db()
+        self.assertTrue(self.restaurant.pinned)
+        self.assertContains(resp, "Pinned")
+
+    def test_staff_post_unpins_a_pinned_restaurant(self):
+        self.restaurant.pinned = True
+        self.restaurant.save(update_fields=["pinned"])
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.toggle_url)
+        self.assertEqual(resp.status_code, 200)
+        self.restaurant.refresh_from_db()
+        self.assertFalse(self.restaurant.pinned)
+        # Response shows the un-pinned state — neither "Pinned" nor the star.
+        self.assertNotContains(resp, "Pinned")
+        self.assertNotContains(resp, "★")
+
+    def test_get_returns_405(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.toggle_url)
+        self.assertEqual(resp.status_code, 405)
+
+    def test_toggle_partial_rendered_on_edit_page(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.edit_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'id="pinned-toggle"')
+        self.assertContains(resp, f'hx-post="{self.toggle_url}"')
