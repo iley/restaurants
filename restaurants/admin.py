@@ -85,9 +85,9 @@ class WishlistFilter(admin.SimpleListFilter):
 
 @admin.register(Restaurant)
 class RestaurantAdmin(SortableAdminBase, admin.ModelAdmin):
-    list_display = ["name", "city", "cuisine", "venue_category", "michelin_status", "rating", "hidden", "closed"]
-    list_filter = ["city", "venue_category", "michelin_status", WishlistFilter, "hidden", "closed"]
-    list_editable = ["hidden", "closed"]
+    list_display = ["name", "city", "cuisine", "venue_category", "michelin_status", "rating", "pinned", "hidden", "closed"]
+    list_filter = ["city", "venue_category", "michelin_status", WishlistFilter, "pinned", "hidden", "closed"]
+    list_editable = ["pinned", "hidden", "closed"]
     search_fields = ["name", "cuisine", "location", "comments"]
     filter_horizontal = ["tags"]
     inlines = [VisitInline, PhotoInline]

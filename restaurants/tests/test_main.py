@@ -1017,3 +1017,12 @@ class PlacesAdminActionMissingApiKeyTests(_AdminActionTestBase):
                 self._request(), Restaurant.objects.all(),
             )
         mock_fetch.assert_not_called()
+
+
+class PinnedFieldTests(TestCase):
+    def setUp(self):
+        self.city = City.objects.create(name="Dublin", slug="dublin")
+
+    def test_pinned_defaults_to_false(self):
+        r = Restaurant.objects.create(city=self.city, name="X", cuisine="Italian")
+        self.assertFalse(r.pinned)

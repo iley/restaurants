@@ -138,6 +138,7 @@ class Restaurant(models.Model):
     closed = models.BooleanField(
         default=False, help_text="Restaurant has permanently closed",
     )
+    pinned = models.BooleanField(default=False, help_text="Pin to top of the list")
     tags = models.ManyToManyField(Tag, blank=True, related_name="restaurants")
 
     created_at = models.DateTimeField(auto_now_add=True)

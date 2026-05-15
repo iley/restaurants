@@ -57,11 +57,11 @@ means "going soon", on the visited list it means "favorite/recommend".
 
 ### Task 1: Add `pinned` field, migration, and admin wiring
 
-- [ ] add `pinned = BooleanField(default=False, help_text="Pin to top of the list")` to `Restaurant` in `restaurants/models.py` near `hidden`/`closed` (line 137)
-- [ ] run `uv run manage.py makemigrations` — should produce `0016_restaurant_pinned.py`
-- [ ] add `"pinned"` to `RestaurantAdmin.list_display` and `list_editable` in `restaurants/admin.py:88-90`
-- [ ] add a model test confirming `pinned` defaults to `False`
-- [ ] run `uv run manage.py test restaurants` — must pass before task 2
+- [x] add `pinned = BooleanField(default=False, help_text="Pin to top of the list")` to `Restaurant` in `restaurants/models.py` near `hidden`/`closed` (line 137)
+- [x] run `uv run manage.py makemigrations` — should produce `0016_restaurant_pinned.py`
+- [x] add `"pinned"` to `RestaurantAdmin.list_display` and `list_editable` in `restaurants/admin.py:88-90`
+- [x] add a model test confirming `pinned` defaults to `False`
+- [x] run `uv run manage.py test restaurants` — must pass before task 2
 
 ### Task 2: Float pinned rows to top of the list view
 
