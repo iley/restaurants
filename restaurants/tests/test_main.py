@@ -1333,3 +1333,102 @@ class RestaurantEditRatingTests(TestCase):
         self.assertContains(resp, f'hx-post="{self.rating_url}"')
         # Pre-filled with the current rating.
         self.assertContains(resp, 'value="8"')
+
+
+class RestaurantEditCommentsTests(TestCase):
+    """HTMX inline edit for Restaurant.comments on the edit page."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+        cls.restaurant = Restaurant.objects.create(
+            city=cls.city, name="Chapter One", cuisine="Modern Irish",
+            comments="Original comment.",
+        )
+        User = get_user_model()
+        cls.staff = User.objects.create_user(
+            username="staff", password="pw", is_staff=True,
+        )
+        cls.regular = User.objects.create_user(
+            username="reg", password="pw", is_staff=False,
+        )
+        cls.comments_url = reverse(
+            "restaurant_edit_comments",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+        cls.edit_url = reverse(
+            "restaurant_edit",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+
+    def setUp(self):
+        # Reset comments each test so order doesn't matter.
+        self.restaurant.comments = "Original comment."
+        self.restaurant.save(update_fields=["comments"])
+
+    def test_anonymous_get_redirects_to_login(self):
+        resp = self.client.get(self.comments_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_anonymous_post_redirects_to_login(self):
+        resp = self.client.post(self.comments_url, {"comments": "tampered"})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.restaurant.refresh_from_db()
+        self.assertEqual(self.restaurant.comments, "Original comment.")
+
+    def test_non_staff_get_redirects_to_login(self):
+        self.client.force_login(self.regular)
+        resp = self.client.get(self.comments_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_non_staff_post_redirects_to_login(self):
+        self.client.force_login(self.regular)
+        resp = self.client.post(self.comments_url, {"comments": "tampered"})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.restaurant.refresh_from_db()
+        self.assertEqual(self.restaurant.comments, "Original comment.")
+
+    def test_staff_get_renders_form_with_current_comments(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.comments_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'name="comments"')
+        self.assertContains(resp, "Original comment.")
+
+    def test_staff_post_valid_comments_updates_db(self):
+        self.client.force_login(self.staff)
+        new_text = "New **bold** comment with a [link](https://example.com)."
+        resp = self.client.post(self.comments_url, {"comments": new_text})
+        self.assertEqual(resp.status_code, 200)
+        self.restaurant.refresh_from_db()
+        self.assertEqual(self.restaurant.comments, new_text)
+        self.assertContains(resp, "New **bold** comment")
+        self.assertContains(resp, "Saved")
+
+    def test_staff_post_empty_comments_allowed(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.comments_url, {"comments": ""})
+        self.assertEqual(resp.status_code, 200)
+        self.restaurant.refresh_from_db()
+        self.assertEqual(self.restaurant.comments, "")
+
+    def test_staff_post_very_long_comments_saved(self):
+        self.client.force_login(self.staff)
+        long_text = "x" * 10000
+        resp = self.client.post(self.comments_url, {"comments": long_text})
+        self.assertEqual(resp.status_code, 200)
+        self.restaurant.refresh_from_db()
+        self.assertEqual(self.restaurant.comments, long_text)
+        self.assertEqual(len(self.restaurant.comments), 10000)
+
+    def test_comments_form_rendered_on_edit_page(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.edit_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'id="comments-form"')
+        self.assertContains(resp, f'hx-post="{self.comments_url}"')
+        self.assertContains(resp, "Original comment.")

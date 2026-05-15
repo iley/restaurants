@@ -1,0 +1,26 @@
+<form id="comments-form"
+      hx-post="{% url 'restaurant_edit_comments' city_slug=city.slug pk=restaurant.pk %}"
+      hx-target="this"
+      hx-swap="outerHTML">
+  {% csrf_token %}
+  <div class="field">
+    <div class="control">
+      <textarea name="comments"
+                class="textarea"
+                rows="8"
+                placeholder="Markdown supported">{{ form.comments.value|default_if_none:'' }}</textarea>
+    </div>
+    <p class="help">Markdown supported.</p>
+  </div>
+  <div class="field">
+    <div class="control">
+      <button type="submit" class="button is-primary">Save</button>
+    </div>
+  </div>
+  {% if form.comments.errors %}
+    <p class="help is-danger">{{ form.comments.errors|join:", " }}</p>
+  {% endif %}
+  {% if saved and not form.comments.errors %}
+    <p class="help is-success">Saved.</p>
+  {% endif %}
+</form>

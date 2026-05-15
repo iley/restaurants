@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from .forms import RatingForm
+from .forms import CommentsForm, RatingForm
 from .models import City, Restaurant
 
 DEFAULT_SORT = "-rating,name"
@@ -109,6 +109,7 @@ def restaurant_edit(request, city_slug, pk):
         "city": city,
         "cities": City.objects.filter(hidden=False),
         "rating_form": RatingForm(instance=restaurant),
+        "comments_form": CommentsForm(instance=restaurant),
     })
 
 
@@ -138,6 +139,26 @@ def restaurant_edit_rating(request, city_slug, pk):
     else:
         form = RatingForm(instance=restaurant)
     return render(request, "restaurants/_rating_form.html", {
+        "restaurant": restaurant,
+        "city": city,
+        "form": form,
+        "saved": saved,
+    })
+
+
+@staff_member_required
+def restaurant_edit_comments(request, city_slug, pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    saved = False
+    if request.method == "POST":
+        form = CommentsForm(request.POST, instance=restaurant)
+        if form.is_valid():
+            form.save()
+            saved = True
+    else:
+        form = CommentsForm(instance=restaurant)
+    return render(request, "restaurants/_comments_form.html", {
         "restaurant": restaurant,
         "city": city,
         "form": form,
