@@ -1917,6 +1917,51 @@ class RestaurantEditPhotosTests(TestCase):
         orders = list(self.restaurant.photos.values_list("order", flat=True).order_by("order"))
         self.assertEqual(orders, [0, 1])
 
+    def test_staff_upload_multiple_files_in_one_request(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.upload_url, {
+            "image": [
+                _make_jpeg(name="a.jpg"),
+                _make_jpeg(name="b.jpg"),
+                _make_jpeg(name="c.jpg"),
+            ],
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.restaurant.photos.count(), 3)
+        orders = list(self.restaurant.photos.values_list("order", flat=True).order_by("order"))
+        self.assertEqual(orders, [0, 1, 2])
+
+    def test_staff_upload_multiple_files_ignores_caption(self):
+        # Bulk uploads drop the shared caption; users set per-photo captions
+        # via the inline edit button.
+        self.client.force_login(self.staff)
+        self.client.post(self.upload_url, {
+            "image": [_make_jpeg(name="a.jpg"), _make_jpeg(name="b.jpg")],
+            "caption": "ignored",
+        })
+        captions = list(self.restaurant.photos.values_list("caption", flat=True))
+        self.assertEqual(captions, ["", ""])
+
+    def test_staff_upload_multiple_appends_after_existing(self):
+        Photo.objects.create(restaurant=self.restaurant, image=_make_jpeg(), order=5)
+        self.client.force_login(self.staff)
+        self.client.post(self.upload_url, {
+            "image": [_make_jpeg(name="a.jpg"), _make_jpeg(name="b.jpg")],
+        })
+        orders = sorted(self.restaurant.photos.values_list("order", flat=True))
+        self.assertEqual(orders, [5, 6, 7])
+
+    def test_staff_upload_mixed_batch_saves_valid_files(self):
+        # One bad file in a batch should not block the good ones.
+        bogus = SimpleUploadedFile("notes.txt", b"hello world", content_type="text/plain")
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.upload_url, {
+            "image": [_make_jpeg(name="a.jpg"), bogus, _make_jpeg(name="c.jpg")],
+        })
+        self.assertEqual(resp.status_code, 200)
+        # Two valid images saved; bogus skipped silently.
+        self.assertEqual(self.restaurant.photos.count(), 2)
+
     def test_staff_get_caption_renders_inline_form(self):
         photo = Photo.objects.create(
             restaurant=self.restaurant, image=_make_jpeg(), caption="Old caption",

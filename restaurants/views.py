@@ -255,18 +255,34 @@ def restaurant_photos_section(request, city_slug, pk):
 def photo_upload(request, city_slug, pk):
     city = get_object_or_404(City, slug=city_slug, hidden=False)
     restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
-    form = PhotoForm(request.POST, request.FILES)
-    if form.is_valid():
-        photo = form.save(commit=False)
-        photo.restaurant = restaurant
-        # Place new photos at the end of the existing order. Single-user app, so
-        # concurrent uploads aren't a real concern; if two ever did race and
-        # collide on `order`, the user can fix it via drag/drop reorder.
-        last = restaurant.photos.aggregate(models.Max("order"))["order__max"]
-        photo.order = 0 if last is None else last + 1
-        photo.save()
-        return _render_photos_section(request, city, restaurant)
-    return _render_photos_section(request, city, restaurant, photo_form=form)
+    files = request.FILES.getlist("image")
+    # Caption only applies to single-file uploads; bulk drops set captions later
+    # via the per-card "Edit caption" button.
+    caption = request.POST.get("caption", "") if len(files) <= 1 else ""
+
+    last = restaurant.photos.aggregate(models.Max("order"))["order__max"]
+    next_order = 0 if last is None else last + 1
+
+    # Validate each file through PhotoForm so ImageField rejects non-images.
+    # Save the valid ones; if every file is invalid, re-render with the form's
+    # errors so the user sees a message.
+    last_invalid_form = None
+    saved_any = False
+    for f in files:
+        form = PhotoForm({"caption": caption}, {"image": f})
+        if form.is_valid():
+            photo = form.save(commit=False)
+            photo.restaurant = restaurant
+            photo.order = next_order
+            photo.save()
+            next_order += 1
+            saved_any = True
+        else:
+            last_invalid_form = form
+
+    if not saved_any and last_invalid_form is not None:
+        return _render_photos_section(request, city, restaurant, photo_form=last_invalid_form)
+    return _render_photos_section(request, city, restaurant)
 
 
 @staff_member_required

@@ -10,7 +10,7 @@
     <p class="has-text-grey mb-4">No photos yet.</p>
   {% endif %}
 
-  <h3 class="subtitle is-6 mt-4">Upload photo</h3>
+  <h3 class="subtitle is-6 mt-4">Upload photos</h3>
   <form id="photo-upload-form"
         hx-post="{% url 'photo_upload' city_slug=city.slug pk=restaurant.pk %}"
         hx-target="#photos-section"
@@ -19,103 +19,187 @@
         enctype="multipart/form-data">
     {% csrf_token %}
     <div class="field">
-      <label class="label is-small">Image</label>
-      <div class="control">
-        <input type="file" name="image" class="input" accept="image/*" required>
+      <div id="photo-drop-zone" class="photo-drop-zone">
+        <input type="file"
+               id="photo-drop-input"
+               name="image"
+               accept="image/*"
+               multiple
+               class="photo-drop-input">
+        <label for="photo-drop-input" class="photo-drop-label">
+          <span class="has-text-weight-semibold">Drop photos here</span>
+          <span class="has-text-grey is-size-7">or click to choose files</span>
+        </label>
       </div>
       {% if photo_form.image.errors %}
         <p class="help is-danger">{{ photo_form.image.errors|join:", " }}</p>
       {% endif %}
     </div>
-    <div class="field">
-      <label class="label is-small">Caption</label>
-      <div class="control">
-        <input type="text"
-               name="caption"
-               class="input"
-               value="{{ photo_form.caption.value|default_if_none:'' }}"
-               placeholder="Caption (optional)"
-               maxlength="200">
+    <noscript>
+      <div class="field">
+        <div class="control">
+          <button type="submit" class="button is-primary">Upload</button>
+        </div>
       </div>
-      {% if photo_form.caption.errors %}
-        <p class="help is-danger">{{ photo_form.caption.errors|join:", " }}</p>
-      {% endif %}
-    </div>
-    <div class="field">
-      <div class="control">
-        <button type="submit" class="button is-primary">Upload</button>
-      </div>
-    </div>
+    </noscript>
   </form>
+
+  <style>
+    .photo-drop-zone {
+      position: relative;
+      border: 2px dashed #b5b5b5;
+      border-radius: 6px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: border-color 0.15s, background-color 0.15s;
+    }
+    .photo-drop-zone.is-dragover {
+      border-color: #3273dc;
+      background-color: #eef3ff;
+    }
+    .photo-drop-input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .photo-drop-label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      pointer-events: none;
+    }
+    #photo-upload-form.is-uploading .photo-drop-zone {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+  </style>
 
   <script>
     (function () {
       const grid = document.getElementById("photos-grid");
-      if (!grid) return;
-      let dragged = null;
-      // Delegate listeners to the grid so cards swapped in via HTMX (e.g. after
-      // an inline caption save) still participate in drag-and-drop.
-      grid.addEventListener("dragstart", function (e) {
-        const card = e.target.closest(".photo-card");
-        if (!card || !grid.contains(card)) return;
-        dragged = card;
-        card.classList.add("is-dragging");
-        e.dataTransfer.effectAllowed = "move";
-      });
-      grid.addEventListener("dragend", function (e) {
-        const card = e.target.closest(".photo-card");
-        if (!card) return;
-        card.classList.remove("is-dragging");
-        dragged = null;
-        postOrder();
-      });
-      grid.addEventListener("dragover", function (e) {
-        const card = e.target.closest(".photo-card");
-        if (!card) return;
-        e.preventDefault();
-        if (!dragged || dragged === card) return;
-        const rect = card.getBoundingClientRect();
-        const before = (e.clientY - rect.top) < rect.height / 2;
-        grid.insertBefore(dragged, before ? card : card.nextSibling);
-      });
-      function postOrder() {
-        const ids = Array.from(grid.querySelectorAll(".photo-card")).map(function (c) {
-          return c.dataset.photoId;
+      if (grid) {
+        let dragged = null;
+        // Delegate listeners to the grid so cards swapped in via HTMX (e.g. after
+        // an inline caption save) still participate in drag-and-drop.
+        grid.addEventListener("dragstart", function (e) {
+          const card = e.target.closest(".photo-card");
+          if (!card || !grid.contains(card)) return;
+          dragged = card;
+          card.classList.add("is-dragging");
+          e.dataTransfer.effectAllowed = "move";
         });
-        const fd = new FormData();
-        ids.forEach(function (id) { fd.append("photo_ids", id); });
-        const csrf = document.querySelector("input[name=csrfmiddlewaretoken]").value;
-        // On failure (auth/CSRF/server), refresh the section so the DOM reflects
-        // the persisted order rather than the optimistic local rearrangement.
-        function refreshSection() {
-          if (window.htmx) {
-            window.htmx.ajax(
-              "GET",
-              "{% url 'restaurant_photos_section' city_slug=city.slug pk=restaurant.pk %}",
-              {target: "#photos-section", swap: "outerHTML"},
-            );
-          } else {
-            window.location.reload();
-          }
-        }
-        fetch("{% url 'photo_reorder' city_slug=city.slug pk=restaurant.pk %}", {
-          method: "POST",
-          headers: {"X-CSRFToken": csrf},
-          body: fd,
-          credentials: "same-origin",
-        })
-          .then(function (r) {
-            // Session expired: staff_member_required 302s to /admin/login/, which
-            // fetch silently follows. Navigate to the login page instead of
-            // swapping its HTML into the section.
-            if (r.redirected) {
-              window.location.href = r.url;
-              return;
+        grid.addEventListener("dragend", function (e) {
+          const card = e.target.closest(".photo-card");
+          if (!card) return;
+          card.classList.remove("is-dragging");
+          dragged = null;
+          postOrder();
+        });
+        grid.addEventListener("dragover", function (e) {
+          const card = e.target.closest(".photo-card");
+          if (!card) return;
+          e.preventDefault();
+          if (!dragged || dragged === card) return;
+          const rect = card.getBoundingClientRect();
+          const before = (e.clientY - rect.top) < rect.height / 2;
+          grid.insertBefore(dragged, before ? card : card.nextSibling);
+        });
+        function postOrder() {
+          const ids = Array.from(grid.querySelectorAll(".photo-card")).map(function (c) {
+            return c.dataset.photoId;
+          });
+          const fd = new FormData();
+          ids.forEach(function (id) { fd.append("photo_ids", id); });
+          const csrf = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+          // On failure (auth/CSRF/server), refresh the section so the DOM reflects
+          // the persisted order rather than the optimistic local rearrangement.
+          function refreshSection() {
+            if (window.htmx) {
+              window.htmx.ajax(
+                "GET",
+                "{% url 'restaurant_photos_section' city_slug=city.slug pk=restaurant.pk %}",
+                {target: "#photos-section", swap: "outerHTML"},
+              );
+            } else {
+              window.location.reload();
             }
-            if (!r.ok) refreshSection();
+          }
+          fetch("{% url 'photo_reorder' city_slug=city.slug pk=restaurant.pk %}", {
+            method: "POST",
+            headers: {"X-CSRFToken": csrf},
+            body: fd,
+            credentials: "same-origin",
           })
-          .catch(refreshSection);
+            .then(function (r) {
+              // Session expired: staff_member_required 302s to /admin/login/, which
+              // fetch silently follows. Navigate to the login page instead of
+              // swapping its HTML into the section.
+              if (r.redirected) {
+                window.location.href = r.url;
+                return;
+              }
+              if (!r.ok) refreshSection();
+            })
+            .catch(refreshSection);
+        }
       }
+
+      const form = document.getElementById("photo-upload-form");
+      const zone = document.getElementById("photo-drop-zone");
+      const input = document.getElementById("photo-drop-input");
+      if (!form || !zone || !input) return;
+
+      // Only react to drags carrying files — ignore the grid's reorder drags
+      // that bubble up to the document.
+      function hasFiles(e) {
+        return Array.from(e.dataTransfer.types || []).includes("Files");
+      }
+
+      ["dragenter", "dragover"].forEach(function (type) {
+        zone.addEventListener(type, function (e) {
+          if (!hasFiles(e)) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+          zone.classList.add("is-dragover");
+        });
+      });
+      ["dragleave", "dragend"].forEach(function (type) {
+        zone.addEventListener(type, function (e) {
+          if (e.target === zone) zone.classList.remove("is-dragover");
+        });
+      });
+      zone.addEventListener("drop", function (e) {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        zone.classList.remove("is-dragover");
+        const images = Array.from(e.dataTransfer.files).filter(function (f) {
+          return f.type.startsWith("image/");
+        });
+        if (!images.length) return;
+        const dt = new DataTransfer();
+        images.forEach(function (f) { dt.items.add(f); });
+        input.files = dt.files;
+        submit();
+      });
+
+      // Auto-submit when files are picked via the file dialog.
+      input.addEventListener("change", function () {
+        if (input.files && input.files.length) submit();
+      });
+
+      function submit() {
+        form.classList.add("is-uploading");
+        if (window.htmx) {
+          window.htmx.trigger(form, "submit");
+        } else {
+          form.submit();
+        }
+      }
+      // HTMX swaps #photos-section on success, replacing this script entirely,
+      // so we don't need to clear is-uploading ourselves.
     })();
   </script>
 </div>

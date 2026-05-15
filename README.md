@@ -16,7 +16,7 @@ The edit page at `/<city>/<int:pk>/edit/` covers the high-frequency operations:
 - Edit rating (1–10, or clear to make it a wishlist entry)
 - Edit comments (Markdown supported)
 - Add/edit/delete visits (date + notes per row)
-- Upload photos, edit captions, reorder via drag-and-drop, delete
+- Upload photos (drag-and-drop multiple files at once), edit captions, reorder via drag-and-drop, delete
 
 Everything else stays in Django admin (`/admin/`): creating/deleting restaurants, editing cuisine/type/address/website/Michelin status/tags, hidden/closed flags, City and Tag CRUD, and bulk attribute-fetch buttons. The **Admin** link on the detail page is one click away.
 
