@@ -4,6 +4,22 @@ Personal web app for tracking restaurants I've visited. Browse, filter, and shar
 
 Stack: Django, HTMX, Bulma, SQLite. Deployed via Docker on a single EC2 instance.
 
+## Editing
+
+Staff users (`is_staff=True`) can edit restaurants directly from the public site without bouncing back to the Django admin. Anonymous and non-staff visitors don't see any edit affordances; edit URLs redirect them to `/admin/login/`.
+
+To log in, visit `/admin/login/` (or click any edit link while logged out) and sign in with your superuser/staff credentials. After login the restaurant detail page shows an **Edit** button next to the existing **Admin** link.
+
+The edit page at `/<city>/<int:pk>/edit/` covers the high-frequency operations:
+
+- Toggle pinned status (one-click HTMX toggle)
+- Edit rating (1–10, or clear to make it a wishlist entry)
+- Edit comments (Markdown supported)
+- Add/edit/delete visits (date + notes per row)
+- Upload photos, edit captions, reorder via drag-and-drop, delete
+
+Everything else stays in Django admin (`/admin/`): creating/deleting restaurants, editing cuisine/type/address/website/Michelin status/tags, hidden/closed flags, City and Tag CRUD, and bulk attribute-fetch buttons. The **Admin** link on the detail page is one click away.
+
 ## Development
 
 ```bash

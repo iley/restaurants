@@ -227,8 +227,8 @@ layer for high-frequency operations.
 
 ### Task 8: Update documentation
 
-- [ ] update `README.md` with a "Editing" section under features: who can edit, how to log in, what's editable on the main site vs. admin
-- [ ] update `CLAUDE.md` only if a new convention emerges that future-me needs to know (otherwise leave it alone — per project preference, README is the doc target)
+- [x] update `README.md` with a "Editing" section under features: who can edit, how to log in, what's editable on the main site vs. admin
+- [x] update `CLAUDE.md` only if a new convention emerges that future-me needs to know (skipped — no new conventions emerged; all patterns used are pre-existing or standard Django, so per project preference CLAUDE.md is left untouched)
 
 *Note: ralphex automatically moves completed plans to `docs/plans/completed/`*
 
