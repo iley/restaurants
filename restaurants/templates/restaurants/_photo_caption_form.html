@@ -1,4 +1,6 @@
-<div id="photo-{{ photo.pk }}" class="photo-card column is-one-third-desktop is-half-tablet">
+<div id="photo-{{ photo.pk }}"
+     class="photo-card column is-one-third-desktop is-half-tablet"
+     data-photo-id="{{ photo.pk }}">
   <figure class="image">
     <img src="{% if photo.thumbnail %}{{ photo.thumbnail.url }}{% else %}{{ photo.image.url }}{% endif %}"
          alt="{{ photo.caption|default:restaurant.name }}"

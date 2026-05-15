@@ -259,7 +259,9 @@ def photo_upload(request, city_slug, pk):
     if form.is_valid():
         photo = form.save(commit=False)
         photo.restaurant = restaurant
-        # Place new photos at the end of the existing order.
+        # Place new photos at the end of the existing order. Single-user app, so
+        # concurrent uploads aren't a real concern; if two ever did race and
+        # collide on `order`, the user can fix it via drag/drop reorder.
         last = restaurant.photos.aggregate(models.Max("order"))["order__max"]
         photo.order = 0 if last is None else last + 1
         photo.save()

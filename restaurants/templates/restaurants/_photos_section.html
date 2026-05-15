@@ -85,12 +85,36 @@
         const fd = new FormData();
         ids.forEach(function (id) { fd.append("photo_ids", id); });
         const csrf = document.querySelector("input[name=csrfmiddlewaretoken]").value;
+        // On failure (auth/CSRF/server), refresh the section so the DOM reflects
+        // the persisted order rather than the optimistic local rearrangement.
+        function refreshSection() {
+          if (window.htmx) {
+            window.htmx.ajax(
+              "GET",
+              "{% url 'restaurant_photos_section' city_slug=city.slug pk=restaurant.pk %}",
+              {target: "#photos-section", swap: "outerHTML"},
+            );
+          } else {
+            window.location.reload();
+          }
+        }
         fetch("{% url 'photo_reorder' city_slug=city.slug pk=restaurant.pk %}", {
           method: "POST",
           headers: {"X-CSRFToken": csrf},
           body: fd,
           credentials: "same-origin",
-        });
+        })
+          .then(function (r) {
+            // Session expired: staff_member_required 302s to /admin/login/, which
+            // fetch silently follows. Navigate to the login page instead of
+            // swapping its HTML into the section.
+            if (r.redirected) {
+              window.location.href = r.url;
+              return;
+            }
+            if (!r.ok) refreshSection();
+          })
+          .catch(refreshSection);
       }
     })();
   </script>
