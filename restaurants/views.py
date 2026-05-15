@@ -137,7 +137,8 @@ def restaurant_list(request, city_slug):
     sort_param = request.GET.get("sort", DEFAULT_SORT)
     current_sort = _parse_sort(sort_param) or _parse_sort(DEFAULT_SORT)
 
-    order_by_args = []
+    # Pinned rows always float to the top, regardless of the user's chosen sort.
+    order_by_args = [models.F("pinned").desc()]
     for f, d in current_sort:
         if f == "michelin":
             expr = _MICHELIN_RANK

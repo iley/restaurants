@@ -1026,3 +1026,41 @@ class PinnedFieldTests(TestCase):
     def test_pinned_defaults_to_false(self):
         r = Restaurant.objects.create(city=self.city, name="X", cuisine="Italian")
         self.assertFalse(r.pinned)
+
+
+class PinnedSortOrderTests(TestCase):
+    """Pinned restaurants must precede non-pinned ones regardless of the chosen
+    sort column, and ties within each group must respect that sort."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+        # Names chosen so alphabetical sort would interleave pinned/unpinned
+        # if pinning weren't taking precedence.
+        cls.alpha = Restaurant.objects.create(
+            city=cls.city, name="Alpha", cuisine="Italian", rating=8, pinned=False,
+        )
+        cls.bravo = Restaurant.objects.create(
+            city=cls.city, name="Bravo", cuisine="Italian", rating=10, pinned=True,
+        )
+        cls.charlie = Restaurant.objects.create(
+            city=cls.city, name="Charlie", cuisine="Italian", rating=6, pinned=False,
+        )
+        cls.delta = Restaurant.objects.create(
+            city=cls.city, name="Delta", cuisine="Italian", rating=7, pinned=True,
+        )
+        cls.url = reverse("restaurant_list", kwargs={"city_slug": cls.city.slug})
+
+    def _names(self, sort):
+        resp = self.client.get(self.url, {"sort": sort})
+        self.assertEqual(resp.status_code, 200)
+        return [r.name for r in resp.context["restaurants"]]
+
+    def test_pinned_precede_unpinned_when_sorting_by_name_asc(self):
+        # Within each group, ties broken alphabetically.
+        self.assertEqual(self._names("name"), ["Bravo", "Delta", "Alpha", "Charlie"])
+
+    def test_pinned_precede_unpinned_when_sorting_by_rating_desc(self):
+        # Within each group, the higher-rated row comes first.
+        # Pinned: Bravo (10) > Delta (7). Unpinned: Alpha (8) > Charlie (6).
+        self.assertEqual(self._names("-rating"), ["Bravo", "Delta", "Alpha", "Charlie"])

@@ -65,9 +65,9 @@ means "going soon", on the visited list it means "favorite/recommend".
 
 ### Task 2: Float pinned rows to top of the list view
 
-- [ ] in `restaurants/views.py:140` (inside `restaurant_list`), prepend `models.F("pinned").desc()` to `order_by_args` so pinned restaurants always come first regardless of the user-selected sort
-- [ ] add a test in `test_main.py` that creates pinned + unpinned restaurants and asserts pinned ones appear first under multiple sort columns (e.g. `name`, `-rating`)
-- [ ] run tests — must pass before task 3
+- [x] in `restaurants/views.py:140` (inside `restaurant_list`), prepend `models.F("pinned").desc()` to `order_by_args` so pinned restaurants always come first regardless of the user-selected sort
+- [x] add a test in `test_main.py` that creates pinned + unpinned restaurants and asserts pinned ones appear first under multiple sort columns (e.g. `name`, `-rating`)
+- [x] run tests — must pass before task 3
 
 ### Task 3: Render 📌 marker on pinned rows
 
