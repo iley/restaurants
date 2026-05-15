@@ -1226,3 +1226,110 @@ class RestaurantTogglePinnedTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'id="pinned-toggle"')
         self.assertContains(resp, f'hx-post="{self.toggle_url}"')
+
+
+class RestaurantEditRatingTests(TestCase):
+    """HTMX inline edit for Restaurant.rating on the edit page."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+        cls.restaurant = Restaurant.objects.create(
+            city=cls.city, name="Chapter One", cuisine="Modern Irish", rating=8,
+        )
+        User = get_user_model()
+        cls.staff = User.objects.create_user(
+            username="staff", password="pw", is_staff=True,
+        )
+        cls.regular = User.objects.create_user(
+            username="reg", password="pw", is_staff=False,
+        )
+        cls.rating_url = reverse(
+            "restaurant_edit_rating",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+        cls.edit_url = reverse(
+            "restaurant_edit",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+
+    def setUp(self):
+        # Reset rating each test so order doesn't matter.
+        self.restaurant.rating = 8
+        self.restaurant.save(update_fields=["rating"])
+
+    def test_anonymous_get_redirects_to_login(self):
+        resp = self.client.get(self.rating_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_anonymous_post_redirects_to_login(self):
+        resp = self.client.post(self.rating_url, {"rating": "9"})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.restaurant.refresh_from_db()
+        self.assertEqual(self.restaurant.rating, 8)
+
+    def test_non_staff_get_redirects_to_login(self):
+        self.client.force_login(self.regular)
+        resp = self.client.get(self.rating_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_non_staff_post_redirects_to_login(self):
+        self.client.force_login(self.regular)
+        resp = self.client.post(self.rating_url, {"rating": "9"})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.restaurant.refresh_from_db()
+        self.assertEqual(self.restaurant.rating, 8)
+
+    def test_staff_get_renders_form_with_current_rating(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.rating_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'name="rating"')
+        # Current rating shows in the value attribute.
+        self.assertContains(resp, 'value="8"')
+
+    def test_staff_post_valid_rating_updates_db(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.rating_url, {"rating": "10"})
+        self.assertEqual(resp.status_code, 200)
+        self.restaurant.refresh_from_db()
+        self.assertEqual(self.restaurant.rating, 10)
+        self.assertContains(resp, 'value="10"')
+        self.assertContains(resp, "Saved")
+
+    def test_staff_post_rating_zero_renders_error_db_unchanged(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.rating_url, {"rating": "0"})
+        self.assertEqual(resp.status_code, 200)
+        self.restaurant.refresh_from_db()
+        self.assertEqual(self.restaurant.rating, 8)
+        self.assertContains(resp, "is-danger")
+
+    def test_staff_post_rating_eleven_renders_error_db_unchanged(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.rating_url, {"rating": "11"})
+        self.assertEqual(resp.status_code, 200)
+        self.restaurant.refresh_from_db()
+        self.assertEqual(self.restaurant.rating, 8)
+        self.assertContains(resp, "is-danger")
+
+    def test_staff_post_empty_rating_clears_to_wishlist(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.rating_url, {"rating": ""})
+        self.assertEqual(resp.status_code, 200)
+        self.restaurant.refresh_from_db()
+        self.assertIsNone(self.restaurant.rating)
+        self.assertTrue(self.restaurant.is_wishlist)
+
+    def test_rating_form_rendered_on_edit_page(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.edit_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'id="rating-form"')
+        self.assertContains(resp, f'hx-post="{self.rating_url}"')
+        # Pre-filled with the current rating.
+        self.assertContains(resp, 'value="8"')

@@ -1,0 +1,39 @@
+<form id="rating-form"
+      hx-post="{% url 'restaurant_edit_rating' city_slug=city.slug pk=restaurant.pk %}"
+      hx-target="this"
+      hx-swap="outerHTML">
+  {% csrf_token %}
+  <div class="field has-addons">
+    <div class="control">
+      <input type="number"
+             name="rating"
+             class="input"
+             min="1"
+             max="10"
+             placeholder="1–10 (blank = wishlist)"
+             value="{{ form.rating.value|default_if_none:'' }}">
+    </div>
+    <div class="control">
+      <button type="submit" class="button is-primary">Save</button>
+    </div>
+    <div class="control">
+      <button type="submit"
+              class="button is-light"
+              name="rating"
+              value="">Clear</button>
+    </div>
+  </div>
+  {% if form.rating.errors %}
+    <p class="help is-danger">{{ form.rating.errors|join:", " }}</p>
+  {% endif %}
+  {% if saved and not form.rating.errors %}
+    <p class="help is-success">
+      Saved.
+      {% if restaurant.is_wishlist %}
+        Now on the wishlist.
+      {% else %}
+        Current rating: {{ restaurant.rating }}.
+      {% endif %}
+    </p>
+  {% endif %}
+</form>

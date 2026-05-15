@@ -10,6 +10,11 @@ urlpatterns = [
         views.restaurant_toggle_pinned,
         name="restaurant_toggle_pinned",
     ),
+    path(
+        "<slug:city_slug>/<int:pk>/edit/rating/",
+        views.restaurant_edit_rating,
+        name="restaurant_edit_rating",
+    ),
     path("<slug:city_slug>/<int:pk>/", views.restaurant_detail, name="restaurant_detail"),
     path("<slug:city_slug>/", views.restaurant_list, name="restaurant_list"),
 ]

@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
+from .forms import RatingForm
 from .models import City, Restaurant
 
 DEFAULT_SORT = "-rating,name"
@@ -107,6 +108,7 @@ def restaurant_edit(request, city_slug, pk):
         "restaurant": restaurant,
         "city": city,
         "cities": City.objects.filter(hidden=False),
+        "rating_form": RatingForm(instance=restaurant),
     })
 
 
@@ -120,6 +122,26 @@ def restaurant_toggle_pinned(request, city_slug, pk):
     return render(request, "restaurants/_pinned_toggle.html", {
         "restaurant": restaurant,
         "city": city,
+    })
+
+
+@staff_member_required
+def restaurant_edit_rating(request, city_slug, pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    saved = False
+    if request.method == "POST":
+        form = RatingForm(request.POST, instance=restaurant)
+        if form.is_valid():
+            form.save()
+            saved = True
+    else:
+        form = RatingForm(instance=restaurant)
+    return render(request, "restaurants/_rating_form.html", {
+        "restaurant": restaurant,
+        "city": city,
+        "form": form,
+        "saved": saved,
     })
 
 

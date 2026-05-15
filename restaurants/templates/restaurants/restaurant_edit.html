@@ -22,4 +22,10 @@
     <p class="help">Pinned restaurants float to the top of the list view.</p>
   </div>
 </section>
+
+<section class="mb-5">
+  <h2 class="subtitle is-5 mb-2">Rating</h2>
+  {% include "restaurants/_rating_form.html" with form=rating_form saved=False %}
+  <p class="help">1–10. Leave blank to make this a wishlist entry.</p>
+</section>
 {% endblock %}
