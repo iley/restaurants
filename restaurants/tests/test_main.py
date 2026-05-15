@@ -1064,3 +1064,32 @@ class PinnedSortOrderTests(TestCase):
         # Within each group, the higher-rated row comes first.
         # Pinned: Bravo (10) > Delta (7). Unpinned: Alpha (8) > Charlie (6).
         self.assertEqual(self._names("-rating"), ["Bravo", "Delta", "Alpha", "Charlie"])
+
+
+class PinnedMarkerRenderTests(TestCase):
+    """The 📌 marker should render next to pinned restaurant names only."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+        cls.pinned = Restaurant.objects.create(
+            city=cls.city, name="PinnedPlace", cuisine="Italian", rating=8, pinned=True,
+        )
+        cls.unpinned = Restaurant.objects.create(
+            city=cls.city, name="UnpinnedPlace", cuisine="Italian", rating=7, pinned=False,
+        )
+        cls.url = reverse("restaurant_list", kwargs={"city_slug": cls.city.slug})
+
+    def test_pin_marker_renders_for_pinned_row(self):
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        # Anchor on the row to avoid catching the emoji somewhere unrelated.
+        pinned_idx = html.index("PinnedPlace")
+        unpinned_idx = html.index("UnpinnedPlace")
+        # The 📌 should appear after the pinned name but before the unpinned name.
+        pin_idx = html.index("📌")
+        self.assertGreater(pin_idx, pinned_idx)
+        self.assertLess(pin_idx, unpinned_idx)
+        # And it should only appear once (only one pinned row).
+        self.assertEqual(html.count("📌"), 1)

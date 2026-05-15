@@ -71,9 +71,9 @@ means "going soon", on the visited list it means "favorite/recommend".
 
 ### Task 3: Render 📌 marker on pinned rows
 
-- [ ] in `restaurants/templates/restaurants/_restaurant_table.html:20`, add `{% if r.pinned %} 📌{% endif %}` next to the restaurant name, mirroring the existing Wishlist/Closed tag pattern
-- [ ] add a view test asserting the 📌 character appears in the rendered HTML for a pinned restaurant and is absent for an unpinned one
-- [ ] run tests — must pass before task 4
+- [x] in `restaurants/templates/restaurants/_restaurant_table.html:20`, add `{% if r.pinned %} 📌{% endif %}` next to the restaurant name, mirroring the existing Wishlist/Closed tag pattern
+- [x] add a view test asserting the 📌 character appears in the rendered HTML for a pinned restaurant and is absent for an unpinned one
+- [x] run tests — must pass before task 4
 
 ### Task 4: Verify acceptance criteria
 
