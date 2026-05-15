@@ -10,8 +10,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from .forms import CommentsForm, RatingForm
-from .models import City, Restaurant
+from .forms import CommentsForm, RatingForm, VisitForm
+from .models import City, Restaurant, Visit
 
 DEFAULT_SORT = "-rating,name"
 
@@ -110,6 +110,8 @@ def restaurant_edit(request, city_slug, pk):
         "cities": City.objects.filter(hidden=False),
         "rating_form": RatingForm(instance=restaurant),
         "comments_form": CommentsForm(instance=restaurant),
+        "visits": restaurant.visits.all(),
+        "add_form": VisitForm(),
     })
 
 
@@ -164,6 +166,70 @@ def restaurant_edit_comments(request, city_slug, pk):
         "form": form,
         "saved": saved,
     })
+
+
+def _render_visits_section(request, city, restaurant, add_form=None):
+    return render(request, "restaurants/_visits_section.html", {
+        "city": city,
+        "restaurant": restaurant,
+        "visits": restaurant.visits.all(),
+        "add_form": add_form or VisitForm(),
+    })
+
+
+@staff_member_required
+def restaurant_visits_section(request, city_slug, pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    return _render_visits_section(request, city, restaurant)
+
+
+@staff_member_required
+@require_POST
+def visit_create(request, city_slug, pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    form = VisitForm(request.POST)
+    if form.is_valid():
+        visit = form.save(commit=False)
+        visit.restaurant = restaurant
+        visit.save()
+        return _render_visits_section(request, city, restaurant)
+    return _render_visits_section(request, city, restaurant, add_form=form)
+
+
+@staff_member_required
+def visit_edit(request, city_slug, pk, visit_pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    visit = get_object_or_404(Visit, pk=visit_pk, restaurant=restaurant)
+    if request.method == "POST":
+        form = VisitForm(request.POST, instance=visit)
+        if form.is_valid():
+            form.save()
+            return render(request, "restaurants/_visit_row.html", {
+                "city": city,
+                "restaurant": restaurant,
+                "visit": visit,
+            })
+    else:
+        form = VisitForm(instance=visit)
+    return render(request, "restaurants/_visit_edit_row.html", {
+        "city": city,
+        "restaurant": restaurant,
+        "visit": visit,
+        "form": form,
+    })
+
+
+@staff_member_required
+@require_POST
+def visit_delete(request, city_slug, pk, visit_pk):
+    city = get_object_or_404(City, slug=city_slug, hidden=False)
+    restaurant = get_object_or_404(Restaurant, pk=pk, city=city, hidden=False)
+    visit = get_object_or_404(Visit, pk=visit_pk, restaurant=restaurant)
+    visit.delete()
+    return _render_visits_section(request, city, restaurant)
 
 
 def restaurant_list(request, city_slug):

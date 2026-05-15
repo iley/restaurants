@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Restaurant
+from .models import Restaurant, Visit
 
 
 class RatingForm(forms.ModelForm):
@@ -26,5 +26,19 @@ class CommentsForm(forms.ModelForm):
                 "class": "textarea",
                 "rows": 8,
                 "placeholder": "Markdown supported",
+            }),
+        }
+
+
+class VisitForm(forms.ModelForm):
+    class Meta:
+        model = Visit
+        fields = ["date", "notes"]
+        widgets = {
+            "date": forms.DateInput(attrs={"class": "input", "type": "date"}),
+            "notes": forms.Textarea(attrs={
+                "class": "textarea",
+                "rows": 2,
+                "placeholder": "Notes (optional)",
             }),
         }

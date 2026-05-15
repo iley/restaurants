@@ -1,0 +1,58 @@
+<div id="visits-section">
+  {% if visits %}
+    <table class="table is-fullwidth">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Notes</th>
+          <th class="has-text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for visit in visits %}
+          {% include "restaurants/_visit_row.html" with visit=visit %}
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="has-text-grey mb-4">No visits yet.</p>
+  {% endif %}
+
+  <h3 class="subtitle is-6 mt-4">Add visit</h3>
+  <form id="visit-add-form"
+        hx-post="{% url 'visit_create' city_slug=city.slug pk=restaurant.pk %}"
+        hx-target="#visits-section"
+        hx-swap="outerHTML">
+    {% csrf_token %}
+    <div class="field">
+      <label class="label is-small">Date</label>
+      <div class="control">
+        <input type="date"
+               name="date"
+               class="input"
+               value="{{ add_form.date.value|default_if_none:'' }}"
+               required>
+      </div>
+      {% if add_form.date.errors %}
+        <p class="help is-danger">{{ add_form.date.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+    <div class="field">
+      <label class="label is-small">Notes</label>
+      <div class="control">
+        <textarea name="notes"
+                  class="textarea"
+                  rows="2"
+                  placeholder="Notes (optional)">{{ add_form.notes.value|default_if_none:'' }}</textarea>
+      </div>
+      {% if add_form.notes.errors %}
+        <p class="help is-danger">{{ add_form.notes.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+    <div class="field">
+      <div class="control">
+        <button type="submit" class="button is-primary">Add visit</button>
+      </div>
+    </div>
+  </form>
+</div>

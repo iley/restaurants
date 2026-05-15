@@ -1,0 +1,42 @@
+<tr id="visit-{{ visit.pk }}">
+  <td colspan="3">
+    <form hx-post="{% url 'visit_edit' city_slug=city.slug pk=restaurant.pk visit_pk=visit.pk %}"
+          hx-target="#visit-{{ visit.pk }}"
+          hx-swap="outerHTML">
+      {% csrf_token %}
+      <div class="field is-grouped">
+        <div class="control">
+          <input type="date"
+                 name="date"
+                 class="input"
+                 value="{{ form.date.value|date:'Y-m-d' }}"
+                 required>
+        </div>
+        <div class="control is-expanded">
+          <textarea name="notes"
+                    class="textarea"
+                    rows="2"
+                    placeholder="Notes (optional)">{{ form.notes.value|default_if_none:'' }}</textarea>
+        </div>
+      </div>
+      {% if form.date.errors %}
+        <p class="help is-danger">{{ form.date.errors|join:", " }}</p>
+      {% endif %}
+      {% if form.notes.errors %}
+        <p class="help is-danger">{{ form.notes.errors|join:", " }}</p>
+      {% endif %}
+      <div class="field is-grouped">
+        <div class="control">
+          <button type="submit" class="button is-primary is-small">Save</button>
+        </div>
+        <div class="control">
+          <button type="button"
+                  class="button is-light is-small"
+                  hx-get="{% url 'restaurant_visits_section' city_slug=city.slug pk=restaurant.pk %}"
+                  hx-target="#visits-section"
+                  hx-swap="outerHTML">Cancel</button>
+        </div>
+      </div>
+    </form>
+  </td>
+</tr>

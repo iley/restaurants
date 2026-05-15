@@ -1,0 +1,17 @@
+<tr id="visit-{{ visit.pk }}">
+  <td>{{ visit.date|date:"Y-m-d" }}</td>
+  <td>{{ visit.notes|linebreaksbr }}</td>
+  <td class="has-text-right">
+    <button type="button"
+            class="button is-small is-light"
+            hx-get="{% url 'visit_edit' city_slug=city.slug pk=restaurant.pk visit_pk=visit.pk %}"
+            hx-target="#visit-{{ visit.pk }}"
+            hx-swap="outerHTML">Edit</button>
+    <button type="button"
+            class="button is-small is-danger is-light"
+            hx-post="{% url 'visit_delete' city_slug=city.slug pk=restaurant.pk visit_pk=visit.pk %}"
+            hx-target="#visits-section"
+            hx-swap="outerHTML"
+            hx-confirm="Delete this visit?">Delete</button>
+  </td>
+</tr>

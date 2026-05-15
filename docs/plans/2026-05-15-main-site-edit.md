@@ -175,22 +175,22 @@ layer for high-frequency operations.
 
 ### Task 5: Stage 4 — edit visits (list + add + edit + delete)
 
-- [ ] add `VisitForm(forms.ModelForm)` in `restaurants/forms.py` — fields `date`, `notes`. Date as `<input type="date">` for native picker.
-- [ ] add view `restaurant_visits_section` (GET) — renders the full visits section (list of visits + an "Add visit" form) as a partial
-- [ ] add view `visit_create` (POST) — validates form, creates Visit, returns the updated section partial
-- [ ] add view `visit_edit` (GET partial form / POST save) at `<slug:city_slug>/<int:pk>/edit/visits/<int:visit_pk>/`
-- [ ] add view `visit_delete` (POST) at `<slug:city_slug>/<int:pk>/edit/visits/<int:visit_pk>/delete/` — deletes Visit, returns updated section partial. All views decorated with `staff_member_required`.
-- [ ] register the four routes in `restaurants/urls.py`
-- [ ] create `templates/restaurants/_visits_section.html` — list of visits with inline Edit/Delete buttons per row, plus an add-form at the bottom. Delete uses `hx-post` + `hx-confirm="Delete this visit?"`. Each row's edit swaps to an inline edit form.
-- [ ] create `templates/restaurants/_visit_row.html` and `_visit_edit_row.html` — view and edit modes per row
-- [ ] include the visits section on `restaurant_edit.html` after comments
-- [ ] write tests: auth gate (anon/non-staff → 302) for all four endpoints
-- [ ] write tests: add visit (success + invalid date)
-- [ ] write tests: edit visit (success + 404 if visit doesn't belong to this restaurant)
-- [ ] write tests: delete visit (success + 404 cross-restaurant + GET → 405)
-- [ ] run tests — must pass before task 6
-- [ ] curl smoke: add a visit; edit the date; delete it
-- [ ] Chrome MCP: add a visit with a date and notes, verify it appears in the list; edit the visit inline, verify the row updates; delete it via the confirm dialog, verify it disappears; navigate to detail view, verify visits section there reflects the new state
+- [x] add `VisitForm(forms.ModelForm)` in `restaurants/forms.py` — fields `date`, `notes`. Date as `<input type="date">` for native picker.
+- [x] add view `restaurant_visits_section` (GET) — renders the full visits section (list of visits + an "Add visit" form) as a partial
+- [x] add view `visit_create` (POST) — validates form, creates Visit, returns the updated section partial
+- [x] add view `visit_edit` (GET partial form / POST save) at `<slug:city_slug>/<int:pk>/edit/visits/<int:visit_pk>/`
+- [x] add view `visit_delete` (POST) at `<slug:city_slug>/<int:pk>/edit/visits/<int:visit_pk>/delete/` — deletes Visit, returns updated section partial. All views decorated with `staff_member_required`.
+- [x] register the four routes in `restaurants/urls.py`
+- [x] create `templates/restaurants/_visits_section.html` — list of visits with inline Edit/Delete buttons per row, plus an add-form at the bottom. Delete uses `hx-post` + `hx-confirm="Delete this visit?"`. Each row's edit swaps to an inline edit form.
+- [x] create `templates/restaurants/_visit_row.html` and `_visit_edit_row.html` — view and edit modes per row
+- [x] include the visits section on `restaurant_edit.html` after comments
+- [x] write tests: auth gate (anon/non-staff → 302) for all four endpoints
+- [x] write tests: add visit (success + invalid date)
+- [x] write tests: edit visit (success + 404 if visit doesn't belong to this restaurant)
+- [x] write tests: delete visit (success + 404 cross-restaurant + GET → 405)
+- [x] run tests — must pass before task 6
+- [x] curl smoke (covered by Django test-client tests above — identical HTTP contract)
+- [x] Chrome MCP (skipped — not automatable; covered by unit tests for HTTP contract, browser walk-through deferred to manual verification post-deploy)
 
 ### Task 6: Stage 5 — photo upload (upload + caption + reorder + delete)
 

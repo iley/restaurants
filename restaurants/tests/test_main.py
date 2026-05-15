@@ -6,7 +6,7 @@ from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from restaurants.models import City, Restaurant
+from restaurants.models import City, Restaurant, Visit
 from restaurants.sources import (
     FETCHABLE_FIELDS,
     FetchedValue,
@@ -1432,3 +1432,236 @@ class RestaurantEditCommentsTests(TestCase):
         self.assertContains(resp, 'id="comments-form"')
         self.assertContains(resp, f'hx-post="{self.comments_url}"')
         self.assertContains(resp, "Original comment.")
+
+
+class RestaurantEditVisitsTests(TestCase):
+    """HTMX list + add/edit/delete for Restaurant.visits on the edit page."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.city = City.objects.create(name="Dublin", slug="dublin")
+        cls.other_city = City.objects.create(name="Cork", slug="cork")
+        cls.restaurant = Restaurant.objects.create(
+            city=cls.city, name="Chapter One", cuisine="Modern Irish",
+        )
+        cls.other_restaurant = Restaurant.objects.create(
+            city=cls.city, name="Other", cuisine="Italian",
+        )
+        User = get_user_model()
+        cls.staff = User.objects.create_user(
+            username="staff", password="pw", is_staff=True,
+        )
+        cls.regular = User.objects.create_user(
+            username="reg", password="pw", is_staff=False,
+        )
+        cls.section_url = reverse(
+            "restaurant_visits_section",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+        cls.add_url = reverse(
+            "visit_create",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+        cls.edit_url = reverse(
+            "restaurant_edit",
+            kwargs={"city_slug": cls.city.slug, "pk": cls.restaurant.pk},
+        )
+
+    def _edit_url(self, visit_pk, restaurant_pk=None):
+        return reverse(
+            "visit_edit",
+            kwargs={
+                "city_slug": self.city.slug,
+                "pk": restaurant_pk or self.restaurant.pk,
+                "visit_pk": visit_pk,
+            },
+        )
+
+    def _delete_url(self, visit_pk, restaurant_pk=None):
+        return reverse(
+            "visit_delete",
+            kwargs={
+                "city_slug": self.city.slug,
+                "pk": restaurant_pk or self.restaurant.pk,
+                "visit_pk": visit_pk,
+            },
+        )
+
+    # --- auth gate: section GET ---
+
+    def test_anon_get_section_redirects_to_login(self):
+        resp = self.client.get(self.section_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_non_staff_get_section_redirects_to_login(self):
+        self.client.force_login(self.regular)
+        resp = self.client.get(self.section_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    # --- auth gate: create ---
+
+    def test_anon_post_create_redirects_to_login(self):
+        resp = self.client.post(self.add_url, {"date": "2026-01-01", "notes": ""})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.assertEqual(self.restaurant.visits.count(), 0)
+
+    def test_non_staff_post_create_redirects_to_login(self):
+        self.client.force_login(self.regular)
+        resp = self.client.post(self.add_url, {"date": "2026-01-01", "notes": ""})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.assertEqual(self.restaurant.visits.count(), 0)
+
+    # --- auth gate: edit ---
+
+    def test_anon_get_edit_redirects_to_login(self):
+        visit = Visit.objects.create(restaurant=self.restaurant, date="2026-01-01")
+        resp = self.client.get(self._edit_url(visit.pk))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+
+    def test_non_staff_post_edit_redirects_to_login(self):
+        visit = Visit.objects.create(restaurant=self.restaurant, date="2026-01-01")
+        self.client.force_login(self.regular)
+        resp = self.client.post(self._edit_url(visit.pk), {
+            "date": "2026-02-02", "notes": "tampered",
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        visit.refresh_from_db()
+        self.assertEqual(str(visit.date), "2026-01-01")
+
+    # --- auth gate: delete ---
+
+    def test_anon_post_delete_redirects_to_login(self):
+        visit = Visit.objects.create(restaurant=self.restaurant, date="2026-01-01")
+        resp = self.client.post(self._delete_url(visit.pk))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.assertTrue(Visit.objects.filter(pk=visit.pk).exists())
+
+    def test_non_staff_post_delete_redirects_to_login(self):
+        visit = Visit.objects.create(restaurant=self.restaurant, date="2026-01-01")
+        self.client.force_login(self.regular)
+        resp = self.client.post(self._delete_url(visit.pk))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/admin/login/", resp["Location"])
+        self.assertTrue(Visit.objects.filter(pk=visit.pk).exists())
+
+    # --- happy paths ---
+
+    def test_staff_get_section_renders_visits(self):
+        Visit.objects.create(restaurant=self.restaurant, date="2026-03-15", notes="Great")
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.section_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "2026-03-15")
+        self.assertContains(resp, "Great")
+        # The "Add visit" form must be present too.
+        self.assertContains(resp, 'id="visit-add-form"')
+
+    def test_staff_post_create_adds_visit(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.add_url, {
+            "date": "2026-04-10", "notes": "Dinner with K.",
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.restaurant.visits.count(), 1)
+        visit = self.restaurant.visits.get()
+        self.assertEqual(str(visit.date), "2026-04-10")
+        self.assertEqual(visit.notes, "Dinner with K.")
+        # Section partial should show the new row.
+        self.assertContains(resp, "2026-04-10")
+        self.assertContains(resp, "Dinner with K.")
+
+    def test_staff_post_create_invalid_date_renders_error(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.add_url, {"date": "not-a-date", "notes": ""})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.restaurant.visits.count(), 0)
+        self.assertContains(resp, "is-danger")
+
+    def test_staff_post_create_missing_date_renders_error(self):
+        self.client.force_login(self.staff)
+        resp = self.client.post(self.add_url, {"date": "", "notes": "no date"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.restaurant.visits.count(), 0)
+        self.assertContains(resp, "is-danger")
+
+    def test_staff_get_edit_renders_form(self):
+        visit = Visit.objects.create(
+            restaurant=self.restaurant, date="2026-01-01", notes="Original",
+        )
+        self.client.force_login(self.staff)
+        resp = self.client.get(self._edit_url(visit.pk))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'name="date"')
+        self.assertContains(resp, 'value="2026-01-01"')
+        self.assertContains(resp, "Original")
+
+    def test_staff_post_edit_updates_visit(self):
+        visit = Visit.objects.create(
+            restaurant=self.restaurant, date="2026-01-01", notes="Original",
+        )
+        self.client.force_login(self.staff)
+        resp = self.client.post(self._edit_url(visit.pk), {
+            "date": "2026-02-02", "notes": "Updated",
+        })
+        self.assertEqual(resp.status_code, 200)
+        visit.refresh_from_db()
+        self.assertEqual(str(visit.date), "2026-02-02")
+        self.assertEqual(visit.notes, "Updated")
+        # Response should be the row partial (read-only mode) with new values.
+        self.assertContains(resp, "2026-02-02")
+        self.assertContains(resp, "Updated")
+
+    def test_edit_404_when_visit_belongs_to_other_restaurant(self):
+        # A visit that belongs to other_restaurant must not be editable under
+        # restaurant's URL — guards against cross-restaurant id-guessing.
+        visit = Visit.objects.create(
+            restaurant=self.other_restaurant, date="2026-01-01",
+        )
+        self.client.force_login(self.staff)
+        resp = self.client.get(self._edit_url(visit.pk))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_staff_post_delete_removes_visit(self):
+        visit = Visit.objects.create(restaurant=self.restaurant, date="2026-01-01")
+        self.client.force_login(self.staff)
+        resp = self.client.post(self._delete_url(visit.pk))
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(Visit.objects.filter(pk=visit.pk).exists())
+
+    def test_delete_404_when_visit_belongs_to_other_restaurant(self):
+        visit = Visit.objects.create(
+            restaurant=self.other_restaurant, date="2026-01-01",
+        )
+        self.client.force_login(self.staff)
+        resp = self.client.post(self._delete_url(visit.pk))
+        self.assertEqual(resp.status_code, 404)
+        self.assertTrue(Visit.objects.filter(pk=visit.pk).exists())
+
+    def test_delete_get_returns_405(self):
+        visit = Visit.objects.create(restaurant=self.restaurant, date="2026-01-01")
+        self.client.force_login(self.staff)
+        resp = self.client.get(self._delete_url(visit.pk))
+        self.assertEqual(resp.status_code, 405)
+        self.assertTrue(Visit.objects.filter(pk=visit.pk).exists())
+
+    def test_create_get_returns_405(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.add_url)
+        self.assertEqual(resp.status_code, 405)
+
+    def test_visits_section_rendered_on_edit_page(self):
+        Visit.objects.create(restaurant=self.restaurant, date="2026-05-01", notes="Lunch")
+        self.client.force_login(self.staff)
+        resp = self.client.get(self.edit_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'id="visits-section"')
+        self.assertContains(resp, "2026-05-01")
+        self.assertContains(resp, "Lunch")
+        self.assertContains(resp, f'hx-post="{self.add_url}"')
