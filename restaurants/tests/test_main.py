@@ -1035,14 +1035,14 @@ class PinnedFieldTests(TestCase):
 
 
 class PinnedSortOrderTests(TestCase):
-    """Pinned restaurants must precede non-pinned ones regardless of the chosen
-    sort column, and ties within each group must respect that sort."""
+    """Pins float to the top under the default sort, but an explicit sort by
+    any column is honored as-is."""
 
     @classmethod
     def setUpTestData(cls):
         cls.city = City.objects.create(name="Dublin", slug="dublin")
         # Names chosen so alphabetical sort would interleave pinned/unpinned
-        # if pinning weren't taking precedence.
+        # if pinning still took precedence.
         cls.alpha = Restaurant.objects.create(
             city=cls.city, name="Alpha", cuisine="Italian", rating=8, pinned=False,
         )
@@ -1057,19 +1057,23 @@ class PinnedSortOrderTests(TestCase):
         )
         cls.url = reverse("restaurant_list", kwargs={"city_slug": cls.city.slug})
 
-    def _names(self, sort):
-        resp = self.client.get(self.url, {"sort": sort})
+    def _names(self, sort=None):
+        params = {"sort": sort} if sort is not None else {}
+        resp = self.client.get(self.url, params)
         self.assertEqual(resp.status_code, 200)
         return [r.name for r in resp.context["restaurants"]]
 
-    def test_pinned_precede_unpinned_when_sorting_by_name_asc(self):
-        # Within each group, ties broken alphabetically.
-        self.assertEqual(self._names("name"), ["Bravo", "Delta", "Alpha", "Charlie"])
+    def test_pinned_precede_unpinned_under_default_sort(self):
+        # Default sort is "-rating,name". Bravo (10, pinned) leads, then Delta
+        # (7, pinned); unpinned Alpha (8) and Charlie (6) follow in rating order.
+        self.assertEqual(self._names(), ["Bravo", "Delta", "Alpha", "Charlie"])
 
-    def test_pinned_precede_unpinned_when_sorting_by_rating_desc(self):
-        # Within each group, the higher-rated row comes first.
-        # Pinned: Bravo (10) > Delta (7). Unpinned: Alpha (8) > Charlie (6).
-        self.assertEqual(self._names("-rating"), ["Bravo", "Delta", "Alpha", "Charlie"])
+    def test_explicit_name_sort_ignores_pins(self):
+        self.assertEqual(self._names("name"), ["Alpha", "Bravo", "Charlie", "Delta"])
+
+    def test_explicit_rating_sort_ignores_pins(self):
+        # Pure rating-desc order; pins do not jump the queue.
+        self.assertEqual(self._names("-rating"), ["Bravo", "Alpha", "Delta", "Charlie"])
 
 
 class PinnedMarkerRenderTests(TestCase):
