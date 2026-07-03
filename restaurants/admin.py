@@ -283,10 +283,11 @@ class CityAdmin(admin.ModelAdmin):
         if not cities:
             self.message_user(request, "No selected cities have a bounding box set.", level="warning")
             return
+        manage_py = str(settings.BASE_DIR / "manage.py")
         for city in cities:
             # Run in background so a browser disconnect won't kill it
             subprocess.Popen(
-                [sys.executable, "manage.py", "fetch_tiles", "--city", city.slug],
+                [sys.executable, manage_py, "fetch_tiles", "--city", city.slug],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )

@@ -2,6 +2,7 @@
 
 <div id="map" style="height: 70vh; width: 100%; border-radius: 6px; position: relative; overflow: hidden;"></div>
 
+{{ restaurants_data|json_script:"restaurant-data" }}
 <script>
 (function() {
     const protocol = new pmtiles.Protocol();
@@ -12,7 +13,7 @@
         [{{ city.bbox_min_lon }}, {{ city.bbox_min_lat }}],
         [{{ city.bbox_max_lon }}, {{ city.bbox_max_lat }}]
     ];
-    const restaurants = {{ restaurants_json|safe }};
+    const restaurants = JSON.parse(document.getElementById("restaurant-data").textContent);
 
     const map = new maplibregl.Map({
         container: "map",
@@ -42,10 +43,17 @@
     }
 
     restaurants.forEach(function(r) {
-        const popup = new maplibregl.Popup({offset: 25}).setHTML(
-            "<strong><a href=\"" + r.url + "\">" + r.name + "</a></strong>" +
-            "<br>" + r.cuisine
-        );
+        // Build popup content via DOM so names/cuisines render as text, not HTML.
+        const content = document.createElement("div");
+        const link = document.createElement("a");
+        link.href = r.url;
+        link.textContent = r.name;
+        const strong = document.createElement("strong");
+        strong.appendChild(link);
+        content.appendChild(strong);
+        content.appendChild(document.createElement("br"));
+        content.appendChild(document.createTextNode(r.cuisine));
+        const popup = new maplibregl.Popup({offset: 25}).setDOMContent(content);
         new maplibregl.Marker({color: markerColor(r.rating)})
             .setLngLat([r.longitude, r.latitude])
             .setPopup(popup)

@@ -208,8 +208,15 @@ class Photo(models.Model):
             self._original_image_name = self.image.name
 
     def _strip_exif(self):
-        """Re-save the image without EXIF metadata (location, timestamps, etc.)."""
+        """Re-save the image without EXIF metadata (location, timestamps, etc.).
+
+        Images with no EXIF data are left untouched, so repeated runs (e.g. the
+        strip_exif command) don't keep re-encoding — and degrading — already
+        clean JPEGs. Returns True if the image was re-saved.
+        """
         img = Image.open(self.image)
+        if not img.getexif():
+            return False
         fmt = img.format
         img = ImageOps.exif_transpose(img)
         save_kwargs = {}
@@ -222,6 +229,7 @@ class Photo(models.Model):
         self.image.storage.delete(name)
         self.image.save(name, ContentFile(buf.read()), save=False)
         super().save(update_fields=["image"])
+        return True
 
     def _generate_thumbnail(self):
         img = Image.open(self.image)

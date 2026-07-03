@@ -13,10 +13,14 @@ class Command(BaseCommand):
             self.stdout.write("No photos found.")
             return
 
+        stripped = 0
         for photo in photos:
-            photo._strip_exif()
-            self.stdout.write(f"  {photo}")
+            if photo._strip_exif():
+                self.stdout.write(f"  {photo}")
+                stripped += 1
 
         self.stdout.write(
-            self.style.SUCCESS(f"Stripped EXIF data from {total} photo(s).")
+            self.style.SUCCESS(
+                f"Stripped EXIF data from {stripped} of {total} photo(s)."
+            )
         )

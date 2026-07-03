@@ -1,4 +1,3 @@
-import json
 from urllib.parse import urlencode
 
 from django.contrib.admin.views.decorators import staff_member_required
@@ -83,8 +82,9 @@ def index(request):
 
 def restaurant_detail(request, city_slug, pk):
     city = get_object_or_404(City, slug=city_slug, hidden=False)
+    # Visits are re-queried below with ascending ordering, so don't prefetch them.
     restaurant = get_object_or_404(
-        Restaurant.objects.prefetch_related("visits", "photos", "tags"),
+        Restaurant.objects.prefetch_related("photos", "tags"),
         pk=pk,
         city=city,
         hidden=False,
@@ -424,9 +424,9 @@ def restaurant_list(request, city_slug):
     view_mode = request.GET.get("view", "list")
     is_htmx = request.headers.get("HX-Request") == "true"
 
-    # Serialize restaurant coordinates for the map.
+    # Restaurant coordinates for the map, emitted via json_script in the template.
     # `rating` is null for wishlist entries; the map renders those with a distinct color.
-    restaurants_json = json.dumps([
+    restaurants_data = [
         {
             "id": r.pk,
             "name": r.name,
@@ -438,7 +438,7 @@ def restaurant_list(request, city_slug):
         }
         for r in restaurants
         if r.latitude is not None and r.longitude is not None
-    ])
+    ]
 
     context = {
         "city": city,
@@ -458,7 +458,7 @@ def restaurant_list(request, city_slug):
         "default_show_wishlist": "1" if DEFAULT_SHOW_WISHLIST else "0",
         "is_htmx": is_htmx,
         "view_mode": view_mode,
-        "restaurants_json": restaurants_json,
+        "restaurants_data": restaurants_data,
     }
 
     if is_htmx:

@@ -115,8 +115,15 @@ document.addEventListener('DOMContentLoaded', function() {
             body.append('city', city);
             body.append('pk', pk);
             body.append('csrfmiddlewaretoken', csrfInput.value);
-            const resp = await fetch(url, {method: 'POST', body, credentials: 'same-origin'});
-            panel.innerHTML = await resp.text();
+            // On network failure, treat as "no duplicates" — the check is
+            // advisory and must never block saving.
+            try {
+                const resp = await fetch(url, {method: 'POST', body, credentials: 'same-origin'});
+                panel.innerHTML = await resp.text();
+            } catch (err) {
+                panel.innerHTML = '';
+                return false;
+            }
             return !!panel.querySelector('.duplicate-warning');
         }
 
