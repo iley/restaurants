@@ -5,7 +5,7 @@
   {% for entry in entries %}
   {% with restaurant=entry.restaurant %}
   <article class="log-entry {% if entry.visit_number > 1 %}log-repeat{% endif %}">
-    <h3 class="is-size-5">Visited <a href="{% url 'restaurant_detail' city_slug=restaurant.city.slug pk=restaurant.pk %}">{{ restaurant.name }}</a>{% if entry.visit_number > 1 %} for the {{ entry.ordinal }} time{% endif %}</h3>
+    <h3 class="is-size-5"><a href="{% url 'restaurant_detail' city_slug=restaurant.city.slug pk=restaurant.pk %}">{{ restaurant.name }}</a>{% if entry.visit_number > 1 %} for the {{ entry.ordinal }} time{% endif %}</h3>
     <p class="is-size-7 has-text-grey mb-3">{{ restaurant.city.name }}{% if restaurant.location %} · {{ restaurant.location }}{% endif %}</p>
     {% if entry.visit_number == 1 %}
       {% if restaurant.comments %}<div class="content log-notes">{{ restaurant.comments|markdown }}</div>{% endif %}
