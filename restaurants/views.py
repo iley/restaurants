@@ -1,3 +1,5 @@
+from datetime import date
+from itertools import groupby
 from urllib.parse import urlencode
 
 from django.contrib.admin.views.decorators import staff_member_required
@@ -7,6 +9,7 @@ from django.db.models.functions import Lower
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.vary import vary_on_headers
 from django.views.decorators.http import require_POST
 
 from .forms import CommentsForm, PhotoCaptionForm, PhotoForm, RatingForm, VisitForm
@@ -78,6 +81,51 @@ def index(request):
     if city is None:
         raise Http404("No cities configured")
     return redirect("restaurant_list", city_slug=city.slug)
+
+
+@vary_on_headers("HX-Request")
+def visit_log(request):
+    visits = Visit.objects.filter(restaurant__hidden=False, restaurant__city__hidden=False)
+    before = request.GET.get("before")
+    if before is not None:
+        try:
+            boundary = date.fromisoformat(before + "-01")
+        except ValueError:
+            raise Http404("Invalid month")
+        visits = visits.filter(date__lt=boundary)
+
+    # Fetch one extra month to detect older entries, without splitting a month.
+    months = list(visits.dates("date", "month", order="DESC")[:4])
+    entries = []
+    if months:
+        # Count across the entire history, including visits outside this batch.
+        # The primary key breaks ties consistently for visits on the same day.
+        earlier = Visit.objects.filter(restaurant_id=models.OuterRef("restaurant_id")).filter(
+            models.Q(date__lt=models.OuterRef("date"))
+            | models.Q(date=models.OuterRef("date"), pk__lte=models.OuterRef("pk"))
+        ).order_by().values("restaurant_id").annotate(total=models.Count("pk")).values("total")
+        entries = list(visits.filter(date__gte=months[min(2, len(months) - 1)]).annotate(
+            visit_number=models.Subquery(earlier),
+        ).select_related("restaurant__city").order_by("-date", "-pk"))
+        models.prefetch_related_objects(
+            [entry.restaurant for entry in entries if entry.visit_number == 1], "photos",
+        )
+        for entry in entries:
+            number = entry.visit_number
+            suffix = "th" if 10 <= number % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(number % 10, "th")
+            entry.ordinal = f"{number}{suffix}"
+
+    context = {
+        "log_active": True,
+        "cities": City.objects.filter(hidden=False),
+        "month_groups": [
+            (month, list(group))
+            for month, group in groupby(entries, key=lambda entry: entry.date.replace(day=1))
+        ],
+        "next_before": months[2].strftime("%Y-%m") if len(months) > 3 else None,
+    }
+    template = "restaurants/_log_months.html" if request.headers.get("HX-Request") == "true" else "restaurants/visit_log.html"
+    return render(request, template, context)
 
 
 def restaurant_detail(request, city_slug, pk):

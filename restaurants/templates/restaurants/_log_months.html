@@ -1,0 +1,43 @@
+{% load markdown_extras %}
+{% for month, entries in month_groups %}
+<section class="log-month" aria-labelledby="month-{{ month|date:'Y-m' }}">
+  <h2 class="log-divider" id="month-{{ month|date:'Y-m' }}" tabindex="-1">{{ month|date:"F Y" }}</h2>
+  {% for entry in entries %}
+  {% with restaurant=entry.restaurant %}
+  <article class="log-entry {% if entry.visit_number > 1 %}log-repeat{% endif %}">
+    <h3 class="is-size-5">Visited <a href="{% url 'restaurant_detail' city_slug=restaurant.city.slug pk=restaurant.pk %}">{{ restaurant.name }}</a>{% if entry.visit_number > 1 %} for the {{ entry.ordinal }} time{% endif %}</h3>
+    <p class="is-size-7 has-text-grey mb-3">{{ restaurant.city.name }}{% if restaurant.location %} · {{ restaurant.location }}{% endif %}</p>
+    {% if entry.visit_number == 1 %}
+      {% if restaurant.comments %}<div class="content log-notes">{{ restaurant.comments|markdown }}</div>{% endif %}
+      {% with photos=restaurant.photos.all %}
+      {% if photos %}
+      <div class="log-photos">
+        {% for photo in photos %}
+        <figure>
+          <a href="{{ photo.image.url }}" target="_blank" rel="noopener" aria-label="Open full image: {{ photo.caption|default:restaurant.name }} (new tab)">
+            <img src="{% if photo.thumbnail %}{{ photo.thumbnail.url }}{% else %}{{ photo.image.url }}{% endif %}" alt="{{ photo.caption|default:restaurant.name }}" loading="lazy" decoding="async" width="320" height="240">
+          </a>
+          {% if photo.caption %}<figcaption class="is-size-7 has-text-grey mt-1">{{ photo.caption }}</figcaption>{% endif %}
+        </figure>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
+    {% endif %}
+  </article>
+  {% endwith %}
+  {% endfor %}
+</section>
+{% empty %}
+<p class="has-text-grey py-5">No visits to show yet.</p>
+{% endfor %}
+{% if next_before %}
+<div id="log-more" class="has-text-centered py-5">
+  <a class="button is-link is-light" href="{% url 'visit_log' %}?before={{ next_before }}"
+     hx-get="{% url 'visit_log' %}?before={{ next_before }}" hx-target="#log-more" hx-swap="outerHTML"
+     hx-disabled-elt="this" hx-indicator="#log-loading">Load 3 more months</a>
+  <p id="log-loading" class="htmx-indicator is-size-7 mt-2" role="status">Loading older visits…</p>
+</div>
+{% elif month_groups %}
+<p class="has-text-centered has-text-grey is-size-7 py-5">You’re all caught up.</p>
+{% endif %}
