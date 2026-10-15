@@ -6,13 +6,13 @@ from django.urls import reverse
 from restaurants.models import City, Photo, Restaurant, Visit
 
 
-class VisitLogTests(TestCase):
+class RecentTests(TestCase):
     def setUp(self):
         self.city = City.objects.create(name="Dublin", slug="dublin")
         self.place = Restaurant.objects.create(
             city=self.city, name="First Place", cuisine="Irish", comments="A **lovely** meal."
         )
-        self.url = reverse("visit_log")
+        self.url = reverse("recent")
 
     def visit(self, when, restaurant=None):
         return Visit.objects.create(restaurant=restaurant or self.place, date=when)
@@ -90,6 +90,6 @@ class VisitLogTests(TestCase):
             self.visit("2026-05-01", place)
         with self.assertNumQueries(4):
             response = self.client.get(self.url)
-        self.assertContains(response, 'aria-current="page">Log</a>')
+        self.assertContains(response, 'aria-current="page">Recent</a>')
         response = self.client.get(reverse("restaurant_list", args=[self.city.slug]))
-        self.assertContains(response, 'href="/log/"')
+        self.assertContains(response, 'href="/recent/"')

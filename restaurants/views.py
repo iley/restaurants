@@ -84,7 +84,7 @@ def index(request):
 
 
 @vary_on_headers("HX-Request")
-def visit_log(request):
+def recent(request):
     visits = Visit.objects.filter(restaurant__hidden=False, restaurant__city__hidden=False)
     before = request.GET.get("before")
     if before is not None:
@@ -116,7 +116,7 @@ def visit_log(request):
             entry.ordinal = f"{number}{suffix}"
 
     context = {
-        "log_active": True,
+        "recent_active": True,
         "cities": City.objects.filter(hidden=False),
         "month_groups": [
             (month, list(group))
@@ -124,7 +124,7 @@ def visit_log(request):
         ],
         "next_before": months[2].strftime("%Y-%m") if len(months) > 3 else None,
     }
-    template = "restaurants/_log_months.html" if request.headers.get("HX-Request") == "true" else "restaurants/visit_log.html"
+    template = "restaurants/_recent_months.html" if request.headers.get("HX-Request") == "true" else "restaurants/recent.html"
     return render(request, template, context)
 
 

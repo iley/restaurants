@@ -40,7 +40,7 @@
             {% endfor %}
           </div>
         </div>
-        <a class="navbar-item {% if log_active %}is-active{% endif %}" href="{% url 'visit_log' %}"{% if log_active %} aria-current="page"{% endif %}>Log</a>
+        <a class="navbar-item {% if recent_active %}is-active{% endif %}" href="{% url 'recent' %}"{% if recent_active %} aria-current="page"{% endif %}>Recent</a>
       </div>
       {% if user.is_staff %}
         <div class="navbar-end">
